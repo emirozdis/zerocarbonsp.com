@@ -1,3 +1,5 @@
+// src/app/api/records/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
@@ -103,10 +105,10 @@ function calculateCO2(weight: number, type: WasteType): number {
   return weight * CO2_FACTORS[type];
 }
 
-// ===== POST /api/records - Save waste record =====
+// ===== POST /api/records - Save waste record (API KEY REQUIRED) =====
 export async function POST(req: NextRequest) {
   try {
-    // API Key Validation
+    // API Key Validation - REQUIRED for writes
     if (!validateApiKey(req)) {
       return createUnauthorizedResponse();
     }
@@ -207,14 +209,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ===== GET /api/records - Fetch records =====
+// ===== GET /api/records - Fetch records (NO API KEY REQUIRED) =====
 export async function GET(req: NextRequest) {
   try {
-    // API Key Validation
-    if (!validateApiKey(req)) {
-      return createUnauthorizedResponse();
-    }
-
     const { searchParams } = new URL(req.url);
     const uid = searchParams.get('uid');
 
@@ -284,9 +281,9 @@ export async function GET(req: NextRequest) {
         { status: 200 }
       );
     } else {
-      // Fetch all users
+      // Fetch all users - PUBLIC LEADERBOARD
       const users: UserData[] = await db.all(
-        'SELECT uid, displayName, totalCO2 FROM users ORDER BY totalCO2 DESC'
+        'SELECT uid, displayName, totalCO2 FROM users ORDER BY totalCO2 ASC'
       );
 
       return NextResponse.json(

@@ -1,16 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Leaf } from "lucide-react"
-
-interface Student {
-  id: number
-  name: string
-  co2Emissions: number
-  avatar: string
-}
+import type { Student, WasteRecord } from "@/lib/types"
 
 interface WasteModalProps {
   student: Student | null
@@ -18,19 +13,58 @@ interface WasteModalProps {
   onClose: () => void
 }
 
-// Generate mock data for the last 7 days
-function generateWasteData(baseEmission: number) {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-  return days.map((day, index) => ({
-    day,
-    waste: Number((baseEmission * (0.12 + Math.random() * 0.06)).toFixed(1)),
-  }))
+interface DailyWaste {
+  day: string
+  waste: number
 }
 
 export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
-  if (!student) return null
+  const [wasteData, setWasteData] = useState<DailyWaste[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const wasteData = generateWasteData(student.co2Emissions)
+  useEffect(() => {
+    if (!student) return
+
+    const fetchDailyWaste = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/records?uid=${student.uid}`)
+        if (!res.ok) throw new Error("Failed to fetch daily data")
+        const json = await res.json()
+        if (!json.success || !json.data || !json.data.records) throw new Error("Invalid response")
+
+        const records: WasteRecord[] = json.data.records
+
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        const today = new Date()
+
+        const last7Days: DailyWaste[] = Array.from({ length: 7 }).map((_, i) => {
+          const d = new Date(today)
+          d.setDate(today.getDate() - (6 - i))
+          const dayName = days[d.getDay()]
+
+          const dayRecords = records.filter((r: WasteRecord) => {
+            const rDate = new Date(r.createdAt)
+            return rDate.toDateString() === d.toDateString()
+          })
+
+          const totalWaste = dayRecords.reduce((sum: number, r: WasteRecord) => sum + r.co2Emission, 0)
+          return { day: dayName, waste: parseFloat(totalWaste.toFixed(1)) }
+        })
+
+        setWasteData(last7Days)
+      } catch (err) {
+        console.error(err)
+        setWasteData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDailyWaste()
+  }, [student])
+
+  if (!student) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,12 +99,7 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
           {/* Chart */}
           <div className="overflow-x-auto">
             <ChartContainer
-              config={{
-                waste: {
-                  label: "Daily Waste",
-                  color: "text-primary", // ensures use of the primary green
-                },
-              }}
+              config={{ waste: { label: "Daily Waste", color: "text-primary" } }}
               className="h-[180px] xs:h-[220px] sm:h-[250px] md:h-[320px] min-w-[320px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
@@ -83,6 +112,7 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
+            {loading && <p className="text-xs text-muted-foreground mt-2 text-center">Yükleniyor...</p>}
           </div>
 
           {/* Footer Info */}

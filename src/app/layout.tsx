@@ -53,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr"> {/* Changed language to Turkish for better SEO targeting */}
+    <html lang="tr">
       <link rel="icon" href="/logo.svg" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

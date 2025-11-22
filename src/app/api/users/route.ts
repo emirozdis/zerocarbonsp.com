@@ -1,3 +1,5 @@
+// src/app/api/users/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
@@ -51,14 +53,9 @@ function createUnauthorizedResponse(): NextResponse {
   );
 }
 
-// ===== GET /api/users - Fetch user by cardID or all users =====
+// ===== GET /api/users - Fetch user by cardID or all users (NO API KEY REQUIRED) =====
 export async function GET(req: NextRequest) {
   try {
-    // API Key Validation
-    if (!validateApiKey(req)) {
-      return createUnauthorizedResponse();
-    }
-
     const db = await openDB();
     await ensureUsersTable(db);
 
@@ -90,7 +87,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch all users
+    // Fetch all users - PUBLIC LIST
     const users: Pick<UserData, 'uid' | 'displayName'>[] = await db.all(
       'SELECT uid, displayName FROM users ORDER BY displayName ASC'
     );
@@ -115,10 +112,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ===== POST /api/users - Create new user =====
+// ===== POST /api/users - Create new user (API KEY REQUIRED) =====
 export async function POST(req: NextRequest) {
   try {
-    // API Key Validation
+    // API Key Validation - REQUIRED for writes
     if (!validateApiKey(req)) {
       return createUnauthorizedResponse();
     }
@@ -207,10 +204,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ===== DELETE /api/users - Delete user =====
+// ===== DELETE /api/users - Delete user (API KEY REQUIRED) =====
 export async function DELETE(req: NextRequest) {
   try {
-    // API Key Validation
+    // API Key Validation - REQUIRED for writes
     if (!validateApiKey(req)) {
       return createUnauthorizedResponse();
     }
