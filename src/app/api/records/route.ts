@@ -12,6 +12,7 @@ interface WasteRecord {
   cardID: string;
   weight: number;
   co2Emission: number;
+  waterFootprint: number;
   createdAt: string;
   wasteType: WasteType;
 }
@@ -20,6 +21,7 @@ interface UserData {
   uid: string;
   displayName: string;
   totalCO2: number;
+  totalWater: number;
 }
 
 interface ApiResponse<T> {
@@ -34,6 +36,16 @@ const CO2_FACTORS: Record<WasteType, number> = {
   0: 1,
   1: 5.5,
   2: 16.5,
+};
+
+// Water footprint factors (liters per gram of waste)
+// Type 0 (Vegetables & Fruits): ~0.322 L/g (average water footprint for produce)
+// Type 1 (Milk & Milk Products): ~1.020 L/g (average water footprint for dairy)
+// Type 2 (Meat Products): ~15.415 L/g (average water footprint for meat)
+const WATER_FACTORS: Record<WasteType, number> = {
+  0: 0.322,
+  1: 1.020,
+  2: 15.415,
 };
 
 const VALID_API_KEYS = process.env.API_KEYS?.split(',') || ['ESP01_SECRET_KEY'];
@@ -54,6 +66,7 @@ async function ensureTables(db: Database) {
       cardID TEXT UNIQUE NOT NULL,
       displayName TEXT NOT NULL,
       totalCO2 REAL DEFAULT 0,
+      totalWater REAL DEFAULT 0,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -64,6 +77,7 @@ async function ensureTables(db: Database) {
       cardID TEXT NOT NULL,
       weight REAL NOT NULL,
       co2Emission REAL NOT NULL,
+      waterFootprint REAL NOT NULL,
       createdAt TEXT NOT NULL,
       wasteType INTEGER NOT NULL CHECK(wasteType IN (0, 1, 2)),
       FOREIGN KEY (cardID) REFERENCES users(cardID)
@@ -103,6 +117,10 @@ function createUnauthorizedResponse(): NextResponse {
 
 function calculateCO2(weight: number, type: WasteType): number {
   return weight * CO2_FACTORS[type];
+}
+
+function calculateWaterFootprint(weight: number, type: WasteType): number {
+  return weight * WATER_FACTORS[type];
 }
 
 // ===== POST /api/records - Save waste record (API KEY REQUIRED) =====
@@ -168,20 +186,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate CO2 and create record
+    // Calculate CO2 and water footprint
     const co2Emission = calculateCO2(weight, type as WasteType);
+    const waterFootprint = calculateWaterFootprint(weight, type as WasteType);
     const createdAt = new Date().toISOString();
 
     // Insert record
     const result = await db.run(
-      'INSERT INTO records (cardID, weight, co2Emission, createdAt, wasteType) VALUES (?, ?, ?, ?, ?)',
-      [cardUID, weight, co2Emission, createdAt, type]
+      'INSERT INTO records (cardID, weight, co2Emission, waterFootprint, createdAt, wasteType) VALUES (?, ?, ?, ?, ?, ?)',
+      [cardUID, weight, co2Emission, waterFootprint, createdAt, type]
     );
 
-    // Update user total CO2
+    // Update user total CO2 and water
     await db.run(
-      'UPDATE users SET totalCO2 = totalCO2 + ? WHERE cardID = ?',
-      [co2Emission, cardUID]
+      'UPDATE users SET totalCO2 = totalCO2 + ?, totalWater = totalWater + ? WHERE cardID = ?',
+      [co2Emission, waterFootprint, cardUID]
     );
 
     return NextResponse.json(
@@ -191,6 +210,7 @@ export async function POST(req: NextRequest) {
         data: {
           recordId: result.lastID,
           co2Emission: parseFloat(co2Emission.toFixed(2)),
+          waterFootprint: parseFloat(waterFootprint.toFixed(2)),
           weight,
           wasteType: type
         }
@@ -221,7 +241,7 @@ export async function GET(req: NextRequest) {
     if (uid) {
       // Fetch specific user and their records
       const user: UserData | undefined = await db.get(
-        'SELECT uid, displayName, totalCO2 FROM users WHERE uid = ?',
+        'SELECT uid, displayName, totalCO2, totalWater FROM users WHERE uid = ?',
         [uid]
       );
 
@@ -237,7 +257,7 @@ export async function GET(req: NextRequest) {
 
       // Get all records for user
       const records: WasteRecord[] = await db.all(
-        `SELECT r.id, r.cardID, r.weight, r.co2Emission, r.createdAt, r.wasteType 
+        `SELECT r.id, r.cardID, r.weight, r.co2Emission, r.waterFootprint, r.createdAt, r.wasteType 
          FROM records r 
          INNER JOIN users u ON r.cardID = u.cardID 
          WHERE u.uid = ? 
@@ -247,7 +267,7 @@ export async function GET(req: NextRequest) {
 
       // Get aggregated stats by waste type
       const aggregated = await db.all(
-        `SELECT r.wasteType, SUM(r.weight) as totalWeight, SUM(r.co2Emission) as totalCO2 
+        `SELECT r.wasteType, SUM(r.weight) as totalWeight, SUM(r.co2Emission) as totalCO2, SUM(r.waterFootprint) as totalWater
          FROM records r 
          INNER JOIN users u ON r.cardID = u.cardID 
          WHERE u.uid = ? 
@@ -255,16 +275,17 @@ export async function GET(req: NextRequest) {
         [uid]
       );
 
-      const aggregatedData: Record<WasteType, { weight: number; co2: number }> = {
-        0: { weight: 0, co2: 0 },
-        1: { weight: 0, co2: 0 },
-        2: { weight: 0, co2: 0 },
+      const aggregatedData: Record<WasteType, { weight: number; co2: number; water: number }> = {
+        0: { weight: 0, co2: 0, water: 0 },
+        1: { weight: 0, co2: 0, water: 0 },
+        2: { weight: 0, co2: 0, water: 0 },
       };
 
       aggregated.forEach((row: any) => {
         aggregatedData[row.wasteType as WasteType] = {
           weight: parseFloat(row.totalWeight.toFixed(2)),
-          co2: parseFloat(row.totalCO2.toFixed(2))
+          co2: parseFloat(row.totalCO2.toFixed(2)),
+          water: parseFloat(row.totalWater.toFixed(2))
         };
       });
 
@@ -283,7 +304,7 @@ export async function GET(req: NextRequest) {
     } else {
       // Fetch all users - PUBLIC LEADERBOARD
       const users: UserData[] = await db.all(
-        'SELECT uid, displayName, totalCO2 FROM users ORDER BY totalCO2 ASC'
+        'SELECT uid, displayName, totalCO2, totalWater FROM users ORDER BY totalCO2 ASC'
       );
 
       return NextResponse.json(

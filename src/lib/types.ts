@@ -5,6 +5,8 @@ export interface Student {
   displayName: string
   co2Emissions: number
   totalCO2: number
+  waterFootprint: number
+  totalWater: number
   avatar: string
 }
 
@@ -13,6 +15,20 @@ export interface WasteRecord {
   cardID: string
   weight: number
   co2Emission: number
+  waterFootprint: number
   createdAt: string
   wasteType: 0 | 1 | 2
+}
+
+export interface DailyWaste {
+  day: string
+  co2: number
+  water: number
+}
+
+export interface WasteTypeStats {
+  type: string
+  weight: number
+  co2: number
+  water: number
 }

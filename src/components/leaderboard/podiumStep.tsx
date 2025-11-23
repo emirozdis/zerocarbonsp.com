@@ -1,13 +1,7 @@
 "use client"
 
-import { Trophy, Medal, Award } from "lucide-react"
-
-interface Student {
-  id: number
-  name: string
-  co2Emissions: number
-  avatar: string
-}
+import { Trophy, Medal, Award, Leaf, Droplets } from "lucide-react"
+import type { Student } from "@/lib/types"
 
 interface PodiumStepProps {
   student: Student
@@ -62,14 +56,35 @@ export function PodiumStep({ student, rank, onClick }: PodiumStepProps) {
             <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-black" />
           </div>
         </div>
-        <div className="text-center px-1">
-          <p className="font-semibold text-xs sm:text-sm md:text-base text-balance leading-tight">{student.name}</p>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary mt-0.5 sm:mt-1">
-            {student.co2Emissions}
-            <span className="text-[10px] sm:text-xs md:text-sm font-normal text-muted-foreground ml-0.5 sm:ml-1">
-              kg
-            </span>
+        <div className="text-center px-1 w-full">
+          <p className="font-semibold text-xs sm:text-sm md:text-base text-balance leading-tight mb-1.5 sm:mb-2">
+            {student.name}
           </p>
+          
+          {/* Metrics Container */}
+          <div className="flex flex-col gap-1 sm:gap-1.5 w-full">
+            {/* CO2 Metric */}
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 sm:py-1.5 rounded-md bg-green-500/10 border border-green-500/20">
+              <Leaf className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-green-600 flex-shrink-0" />
+              <span className="text-sm sm:text-base md:text-lg font-bold text-green-700">
+                {student.co2Emissions.toFixed(2)}
+              </span>
+              <span className="text-[9px] sm:text-[10px] md:text-xs font-normal text-green-600/70">
+                kg CO₂
+              </span>
+            </div>
+
+            {/* Water Metric */}
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 sm:py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20">
+              <Droplets className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-600 flex-shrink-0" />
+              <span className="text-sm sm:text-base md:text-lg font-bold text-blue-700">
+                {(student.waterFootprint || 0).toFixed(2)}
+              </span>
+              <span className="text-[9px] sm:text-[10px] md:text-xs font-normal text-blue-600/70">
+                L H₂O
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

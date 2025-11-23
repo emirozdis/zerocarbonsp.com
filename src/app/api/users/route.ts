@@ -31,6 +31,7 @@ async function ensureUsersTable(db: Database) {
       cardID TEXT UNIQUE NOT NULL,
       displayName TEXT NOT NULL,
       totalCO2 REAL DEFAULT 0,
+      totalWater REAL DEFAULT 0,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     try {
       await db.run(
-        'INSERT INTO users (uid, cardID, displayName, totalCO2) VALUES (?, ?, ?, 0)',
+        'INSERT INTO users (uid, cardID, displayName, totalCO2, totalWater) VALUES (?, ?, ?, 0, 0)',
         [uid, trimmedCardID, trimmedDisplayName]
       );
 

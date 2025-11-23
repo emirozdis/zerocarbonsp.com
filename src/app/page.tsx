@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { PodiumStep } from "@/components/leaderboard/podiumStep"
 import { LeaderboardItem } from "@/components/leaderboard/leaderboardItem"
 import { WasteModal } from "@/components/leaderboard/wasteModal"
-import type { Student } from "@/lib/types" // <- import the correct type
+import type { Student } from "@/lib/types"
 
 export default function Leaderboard() {
   const [students, setStudents] = useState<Student[]>([])
@@ -34,13 +34,14 @@ export default function Leaderboard() {
       if (!result.success || !result.data) throw new Error(result.error || "Invalid response format")
 
       const studentsData: Student[] = result.data.map((user: any, index: number) => ({
-        id: typeof user.id === "number" ? user.id : index, // ensure number for TS
+        id: typeof user.id === "number" ? user.id : index,
         uid: user.uid,
         name: user.displayName,
         displayName: user.displayName,
-        // API returns CO2 in grams — convert to kilograms for display
         totalCO2: (user.totalCO2 || 0) / 1000,
         co2Emissions: (user.totalCO2 || 0) / 1000,
+        totalWater: (user.totalWater || 0) / 1000,
+        waterFootprint: (user.totalWater || 0) / 1000,
         avatar: user.displayName
           .split(" ")
           .map((n: string) => n[0])
@@ -115,7 +116,7 @@ export default function Leaderboard() {
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 md:space-y-12 px-4 sm:px-6">
         <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 pt-18 md:pt-24">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance px-2">
-            Haftalık CO₂ Emisyonu <br /> Liderlik Tablosu
+            Yeşil Liderlik Tablosu
           </h1>
         </div>
 

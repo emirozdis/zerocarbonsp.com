@@ -2,13 +2,8 @@
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-
-interface Student {
-  id: number
-  name: string
-  co2Emissions: number
-  avatar: string
-}
+import { Leaf, Droplets } from "lucide-react"
+import type { Student } from "@/lib/types"
 
 interface LeaderboardItemProps {
   student: Student
@@ -19,7 +14,7 @@ interface LeaderboardItemProps {
 export function LeaderboardItem({ student, rank, onClick }: LeaderboardItemProps) {
   return (
     <Card
-      className="p-3 sm:p-4 md:p-5 hover:shadow-lg transition-all hover:scale-[1.02] bg-card cursor-pointer"
+      className="p-3 sm:p-4 md:p-5 hover:shadow-lg transition-all hover:scale-[1.01] bg-card cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
@@ -36,16 +31,51 @@ export function LeaderboardItem({ student, rank, onClick }: LeaderboardItemProps
         {/* Name */}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm sm:text-base md:text-lg truncate">{student.name}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground hidden xs:block">Click for details</p>
         </div>
 
-        {/* Emissions */}
-        <div className="flex-shrink-0 text-right">
+        {/* Emissions - Desktop */}
+        <div className="hidden md:flex flex-shrink-0 gap-3 lg:gap-4">
+          <div className="flex items-center gap-1.5 lg:gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
+            <Leaf className="w-4 h-4 text-green-600 flex-shrink-0" />
+            <div className="text-right">
+              <div className="text-sm lg:text-base font-bold text-green-700">
+                {student.co2Emissions.toFixed(2)}
+                <span className="text-[10px] lg:text-xs font-normal ml-1">kg</span>
+              </div>
+              <div className="text-[9px] lg:text-[10px] text-green-600/70">CO₂</div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1.5 lg:gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <Droplets className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <div className="text-right">
+              <div className="text-sm lg:text-base font-bold text-blue-700">
+                {(student.waterFootprint || 0).toFixed(2)}
+                <span className="text-[10px] lg:text-xs font-normal ml-1">L</span>
+              </div>
+              <div className="text-[9px] lg:text-[10px] text-blue-600/70">H₂O</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Emissions - Mobile & Tablet */}
+        <div className="flex md:hidden flex-col gap-1.5 sm:gap-2 flex-shrink-0">
           <Badge
             variant="secondary"
-            className="text-sm sm:text-base md:text-lg font-bold px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2"
+            className="text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 bg-green-500/10 text-green-700 border-green-500/20 flex items-center gap-1"
           >
-            {student.co2Emissions}
-            <span className="text-[10px] sm:text-xs font-normal ml-0.5 sm:ml-1">kg</span>
+            <Leaf className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            {student.co2Emissions.toFixed(2)}
+            <span className="text-[9px] sm:text-[10px] font-normal">kg</span>
+          </Badge>
+          <Badge
+            variant="secondary"
+            className="text-xs sm:text-sm font-bold px-2 sm:px-3 py-1 bg-blue-500/10 text-blue-700 border-blue-500/20 flex items-center gap-1"
+          >
+            <Droplets className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            {(student.waterFootprint || 0).toFixed(2)}
+            <span className="text-[9px] sm:text-[10px] font-normal">L</span>
           </Badge>
         </div>
       </div>
