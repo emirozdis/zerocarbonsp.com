@@ -115,6 +115,9 @@ export default function Leaderboard() {
     <main className="min-h-screen py-8 px-4 md:py-12">
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 md:space-y-12 px-4 sm:px-6">
         <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 pt-18 md:pt-24">
+          <h3 className="text-lg sm:text-base md:text-2xl font-medium text-primary/80">
+            Kasım Ayı
+          </h3>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance px-2">
             Yeşil Liderlik Tablosu
           </h1>
@@ -123,11 +126,10 @@ export default function Leaderboard() {
         {podiumOrder.length > 0 && (
           <div className="relative">
             <div
-              className={`grid gap-1.5 sm:gap-2 md:gap-4 items-end max-w-3xl mx-auto ${
-                podiumOrder.length === 1 ? "grid-cols-1 max-w-xs" :
-                podiumOrder.length === 2 ? "grid-cols-2 max-w-sm" :
-                "grid-cols-3"
-              }`}
+              className={`grid gap-1.5 sm:gap-2 md:gap-4 items-end max-w-3xl mx-auto ${podiumOrder.length === 1 ? "grid-cols-1 max-w-xs" :
+                  podiumOrder.length === 2 ? "grid-cols-2 max-w-sm" :
+                    "grid-cols-3"
+                }`}
             >
               {podiumOrder.map((student) => {
                 const actualRank = topThree.findIndex((s) => s.uid === student.uid) + 1
