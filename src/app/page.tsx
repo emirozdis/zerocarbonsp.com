@@ -38,10 +38,15 @@ export default function Leaderboard() {
         uid: user.uid,
         name: user.displayName,
         displayName: user.displayName,
+
+        // CO2 comes as grams (gr), convert to kg
         totalCO2: (user.totalCO2 || 0) / 1000,
         co2Emissions: (user.totalCO2 || 0) / 1000,
-        totalWater: (user.totalWater || 0) / 1000,
-        waterFootprint: (user.totalWater || 0) / 1000,
+
+        // WATER comes as liters (lt), use as is
+        totalWater: (user.totalWater || 0),
+        waterFootprint: (user.totalWater || 0),
+
         avatar: user.displayName
           .split(" ")
           .map((n: string) => n[0])
@@ -114,23 +119,23 @@ export default function Leaderboard() {
   return (
     <main className="min-h-screen py-8 px-4 md:py-12">
       <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 md:space-y-12 px-4 sm:px-6">
+        
         <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 pt-18 md:pt-24">
           <h3 className="text-lg sm:text-base md:text-2xl font-medium text-primary/80">
             Kasım Ayı
           </h3>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance px-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
             Yeşil Liderlik Tablosu
           </h1>
         </div>
 
         {podiumOrder.length > 0 && (
           <div className="relative">
-            <div
-              className={`grid gap-1.5 sm:gap-2 md:gap-4 items-end max-w-3xl mx-auto ${podiumOrder.length === 1 ? "grid-cols-1 max-w-xs" :
-                  podiumOrder.length === 2 ? "grid-cols-2 max-w-sm" :
-                    "grid-cols-3"
-                }`}
-            >
+            <div className={`grid gap-1.5 sm:gap-2 md:gap-4 items-end max-w-3xl mx-auto ${
+              podiumOrder.length === 1 ? "grid-cols-1 max-w-xs" :
+              podiumOrder.length === 2 ? "grid-cols-2 max-w-sm" :
+              "grid-cols-3"
+            }`}>
               {podiumOrder.map((student) => {
                 const actualRank = topThree.findIndex((s) => s.uid === student.uid) + 1
                 return (
@@ -148,7 +153,7 @@ export default function Leaderboard() {
 
         {restOfStudents.length > 0 && (
           <div className="max-w-3xl mx-auto space-y-2 sm:space-y-3">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 px-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6">
               Diğer Katılımcılar
             </h2>
             <div className="space-y-2">
@@ -164,23 +169,15 @@ export default function Leaderboard() {
           </div>
         )}
 
-        {students.length > 0 && students.length <= 3 && restOfStudents.length === 0 && (
-          <div className="max-w-3xl mx-auto text-center">
-            <p className="text-sm text-foreground/60">
-              {students.length === 1 ? "1 katılımcı bulunuyor" : `${students.length} katılımcı bulunuyor`}
-            </p>
-          </div>
-        )}
-
         <div className="text-center max-w-2xl mx-auto pb-6 sm:pb-8">
           <Card className="p-6 sm:p-8 md:p-10 bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/30 shadow-lg">
             <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
-              <img src="/logo.svg" alt="Zero Carbon Project Logo" className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+              <img src="/logo.svg" alt="Zero Carbon Project Logo" className="w-5 h-5 sm:w-6 sm:h-6" />
               <h3 className="text-base sm:text-lg md:text-xl font-bold text-primary">
                 Projeye Katılın!
               </h3>
             </div>
-            <p className="text-sm sm:text-base md:text-lg text-foreground/80 mb-5 sm:mb-6 text-pretty leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-foreground/80 mb-5 sm:mb-6 leading-relaxed">
               Liderlik tablosunda yerini alarak ödüller kazan! <br />
               <b>Detaylı bilgi ve katılım için: Yasemin Bilgin Kırkgöz</b>
             </p>
@@ -188,7 +185,11 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      <WasteModal student={selectedStudent} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <WasteModal
+        student={selectedStudent}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </main>
   )
 }

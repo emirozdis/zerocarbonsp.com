@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Leaf, Droplets, TrendingDown, CalendarDays, Trees } from "lucide-react"
 import type { Student, WasteRecord, DailyWaste, WasteTypeStats } from "@/lib/types"
@@ -36,27 +37,39 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
         
         setRecordCount(records.length)
 
-        // Calculate daily data for last 7 days
-        const days = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"]
+        // Calculate daily data for last completed week (Monday to Sunday)
+        const days = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
         const today = new Date()
+        
+        // Find the most recent Sunday (end of last completed week)
+        const lastSunday = new Date(today)
+        const currentDay = today.getDay()
+        const daysToSubtract = currentDay === 0 ? 0 : currentDay
+        lastSunday.setDate(today.getDate() - daysToSubtract)
+        lastSunday.setHours(0, 0, 0, 0)
 
         const last7Days: DailyWaste[] = Array.from({ length: 7 }).map((_, i) => {
-          const d = new Date(today)
-          d.setDate(today.getDate() - (6 - i))
-          const dayName = days[d.getDay()]
+          // Start from Monday of last week (6 days before Sunday)
+          const d = new Date(lastSunday)
+          d.setDate(lastSunday.getDate() - (6 - i))
+          // Adjust so Monday (1) becomes index 0, Sunday (0) becomes index 6
+          const dayIndex = d.getDay() === 0 ? 6 : d.getDay() - 1
+          const dayName = days[dayIndex]
 
           const dayRecords = records.filter((r: WasteRecord) => {
             const rDate = new Date(r.createdAt)
             return rDate.toDateString() === d.toDateString()
           })
 
+          // CO2 comes as grams, convert to kg for chart
           const totalCO2 = dayRecords.reduce((sum: number, r: WasteRecord) => sum + r.co2Emission, 0)
+          // Water comes as liters, use as is
           const totalWater = dayRecords.reduce((sum: number, r: WasteRecord) => sum + (r.waterFootprint || 0), 0)
           
           return { 
             day: dayName, 
-            co2: parseFloat((totalCO2 / 1000).toFixed(2)),
-            water: parseFloat((totalWater / 1000).toFixed(2))
+            co2: parseFloat((totalCO2 / 1000).toFixed(2)), // gr -> kg
+            water: parseFloat(totalWater.toFixed(2)) // lt -> lt
           }
         })
 
@@ -71,13 +84,14 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
           totalW += data.weight || 0
           return {
             type: wasteTypes[typeNum],
-            weight: parseFloat((data.weight || 0).toFixed(2)),
-            co2: parseFloat(((data.co2 || 0) / 1000).toFixed(2)),
-            water: parseFloat(((data.water || 0) / 1000).toFixed(2))
+            weight: parseFloat((data.weight || 0).toFixed(2)), // gr -> gr (UI says gr)
+            co2: parseFloat(((data.co2 || 0) / 1000).toFixed(2)), // gr -> kg (UI says kg)
+            water: parseFloat((data.water || 0).toFixed(2)) // lt -> lt (UI says L)
           }
         }).filter(stat => stat.weight > 0)
 
         setWasteTypeStats(typeStats)
+        // Total weight comes as grams, convert to kg for summary card
         setTotalWeight(parseFloat((totalW / 1000).toFixed(2)))
 
       } catch (err) {
@@ -206,7 +220,7 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
                   <div key={idx} className="space-y-1 sm:space-y-2">
                     <div className="flex items-center justify-between text-xs sm:text-sm">
                       <span className="font-medium">{stat.type}</span>
-                      <span className="text-muted-foreground">{stat.weight} kg</span>
+                      <span className="text-muted-foreground">{stat.weight} gr</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-xs">
                       <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded bg-green-500/10">
@@ -224,37 +238,72 @@ export function WasteModal({ student, isOpen, onClose }: WasteModalProps) {
             </div>
           )}
 
-          {/* Daily Chart */}
+          {/* Daily Chart with Tabs */}
           <div className="p-3 sm:p-4 md:p-5 rounded-lg bg-card border">
             <h3 className="font-semibold text-sm sm:text-base md:text-lg mb-3 sm:mb-4">Son 7 Günlük Etki</h3>
-            <div className="overflow-x-auto">
-              <ChartContainer
-                config={{
-                  co2: { label: "CO₂ (kg)", color: "#10b981" },
-                  water: { label: "Water (L)", color: "#3b82f6" }
-                }}
-                className="h-[200px] sm:h-[250px] md:h-[300px] min-w-[320px] w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="day" className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
-                    <YAxis className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
-                    <ChartTooltip 
-                      content={<ChartTooltipContent />}
-                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
-                    />
-                    <Legend 
-                      wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                      iconType="circle"
-                    />
-                    <Bar dataKey="co2" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} name="CO₂ (kg)" />
-                    <Bar dataKey="water" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} name="Water (L)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-              {loading && <p className="text-xs text-muted-foreground mt-2 text-center">Yükleniyor...</p>}
-            </div>
+            
+            <Tabs defaultValue="co2" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="co2" className="text-xs sm:text-sm">
+                  <Leaf className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  CO₂ Emisyonları
+                </TabsTrigger>
+                <TabsTrigger value="water" className="text-xs sm:text-sm">
+                  <Droplets className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Su Ayak İzi
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="co2">
+                <div className="overflow-x-auto">
+                  <ChartContainer
+                    config={{
+                      co2: { label: "CO₂ (kg)", color: "#10b981" }
+                    }}
+                    className="h-[200px] sm:h-[250px] md:h-[300px] min-w-[320px] w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="day" className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
+                        <YAxis className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
+                        <ChartTooltip 
+                          content={<ChartTooltipContent />}
+                          cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                        />
+                        <Bar dataKey="co2" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} name="CO₂ (kg)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="water">
+                <div className="overflow-x-auto">
+                  <ChartContainer
+                    config={{
+                      water: { label: "Su (L)", color: "#3b82f6" }
+                    }}
+                    className="h-[200px] sm:h-[250px] md:h-[300px] min-w-[320px] w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dailyData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="day" className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
+                        <YAxis className="text-[10px] xs:text-xs" tick={{ fontSize: 10 }} />
+                        <ChartTooltip 
+                          content={<ChartTooltipContent />}
+                          cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                        />
+                        <Bar dataKey="water" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} name="Su (L)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            {loading && <p className="text-xs text-muted-foreground mt-2 text-center">Yükleniyor...</p>}
           </div>
 
           {/* Footer Info */}
