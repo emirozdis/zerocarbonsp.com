@@ -1,69 +1,67 @@
-# Sıfır Karbon Okul Projesi (Zero Carbon SP)
+# Zero Carbon School Project (Zero Carbon SP)
 
-## Proje Hakkında
+![About Page](./screenshots/about.png)
+## About the Project
 
-Sıfır Karbon Okul Projesi, İTÜ GVO İzmir Okulları tarafından başlatılan, öğrencilerin çevre bilincini artırmayı ve sürdürülebilir yaşam alışkanlıklarını teşvik etmeyi amaçlayan yenilikçi bir sürdürülebilirlik girişimidir. Bu proje, haftalık karbon emisyonu liderlik tablosu aracılığıyla öğrencileri ödüllendirerek, gıda atığı takibi ve karbon ayak izi azaltma konularında aktif rol almalarını sağlamaktadır.
+The Zero Carbon School Project is an environmental sustainability initiative aimed at raising students’ ecological awareness and encouraging sustainable lifestyle habits. Through a weekly carbon emissions leaderboard, this project rewards students and encourages them to take an active role in tracking food waste and reducing their carbon footprint.
 
-## Temel Özellikler
+The physical data for this system is collected using custom-built smart bins designed, constructed, and deployed in participating schools as part of this project.
 
-*   **Haftalık Karbon Emisyonu Liderlik Tablosu**: Öğrencilerin karbon ayak izlerini takip ederek, en düşük emisyona sahip olanları ödüllendirir.
-*   **Gıda Atığı Takibi ve Hesaplama**: Yemekhanede oluşan gıda atıklarının türüne ve ağırlığına göre CO2 emisyonu ve su ayak izi hesaplaması yapar.
-*   **Öğrenci Ödüllendirme Sistemi**: Çevre dostu davranışları teşvik etmek amacıyla sürpriz ödüller sunar.
-*   **Detaylı Çevresel Etki İstatistikleri**: Her öğrencinin toplam CO2 emisyonu, su ayak izi ve atık kategorisi dağılımını gösterir.
-*   **API Anahtarı Korumalı Yönetim**: Kullanıcı ve atık kayıtları için güvenli API erişimi sağlar.
-*   **Duyarlı ve Erişilebilir Arayüz**: Modern ve kullanıcı dostu bir deneyim sunar, karanlık mod desteği içerir.
+![Leaderboard](./screenshots/leaderboard.png)
+## Key Features
 
-## Sistem Nasıl Çalışır?
+*   **Weekly Carbon Emissions Leaderboard**: Tracks students’ carbon footprints and rewards those with the lowest emissions.
+*   **Food Waste Tracking and Calculation**: Calculates CO2 emissions and water footprint based on the type and weight of food waste generated in the cafeteria.
+*   **Student Reward System**: Offers weekly rewards to encourage eco-friendly behavior.
+*   **Detailed Environmental Impact Statistics**: Displays each student’s total CO2 emissions, water footprint, and waste category distribution.
+*   **API Key-Protected Management**: Provides secure API access for user and waste records.
+*   **Responsive and Accessible Interface**: Offers a modern experience, including dark mode support.
 
-1.  **Atık Girişi ve Tanımlama**: Öğrenciler, yemek sonrası gıda atıklarını (et, süt ürünleri, bitkisel) akıllı atık kutularına atar ve öğrenci kartlarını okutarak kendilerini sisteme tanıtır.
-2.  **Hesaplama**: Sistem, atığın ağırlığını ölçer ve türüne göre CO₂ emisyonu ile su ayak izini otomatik olarak hesaplar.
-3.  **Liderlik Tablosu ve Ödüllendirme**: Hesaplanan veriler anında liderlik tablosuna yansıtılır. Haftanın sonunda en düşük karbon ayak izine sahip öğrenciler ödüllendirilir.
 
-## Teknoloji Yığını
+### Waste Entry Modal
+![Waste Entry](./screenshots/modal.png)
+## How Does the System Work?
 
-*   **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Shadcn UI (Radix UI), Recharts (veri görselleştirme), Lucide React (ikonlar).
+1.  **Waste Input and Identification**: Students dispose of post-meal food waste (meat, dairy, plant-based) into the custom-built smart waste bins placed in their schools. They identify themselves to the system by swiping their student cards.
+2.  **Calculation**: The smart bin measures the weight of the waste, and the backend system automatically calculates the CO₂ emissions and water footprint based on the specific food category.
+3.  **Leaderboard and Rewards**: The calculated data is instantly updated on the leaderboard. At the end of the week, students with the lowest carbon footprint are recognized and rewarded.
+
+## Technology Stack
+
+*   **Frontend**: Next.js, React, TypeScript, Tailwind CSS, Shadcn UI (Radix UI), Recharts (data visualization), Lucide React (icons).
 *   **Backend**: Next.js API Routes, Node.js, TypeScript.
-*   **Veritabanı**: SQLite.
-*   **Yetkilendirme**: API Anahtarı tabanlı yetkilendirme (yazma işlemleri için).
+*   **Database**: SQLite.
+*   **Authentication**: API key-based authentication for write operations.
 
-## Proje Ekibi
+## Project Team
 
-*   **Proje Danışmanı**: Yasemin Bilgin Kırkgöz
-*   **Takım Üyesi**: Aksel Eruysal (Teknik altyapı tasarımı ve geliştirme)
-*   **Takım Üyesi**: Mehmet Emir Özdiş (Veri analizi ve liderlik tablosu stratejisi yönetimi)
+*   **Project Advisor**: Yasemin Bilgin Kırkgöz
+*   **Team Member**: Aksel Eruysal (Technical infrastructure design and development)
+*   **Team Member**: Mehmet Emir Özdiş (Data analysis and leaderboard strategy management) 
 
-## Kurulum ve Geliştirme (Yerel)
+## Setup and Development (Local)
 
-Bu proje için detaylı kurulum talimatları şu anda mevcut değildir. Genellikle bir Next.js projesini çalıştırmak için aşağıdaki adımlar izlenir:
+To run this Next.js project locally, follow these steps:
 
-1.  Depoyu klonlayın:
+1.  Clone the repository:
     ```bash
     git clone https://github.com/emirozdis/zerocarbonsp.com.git
     cd zerocarbonsp.com
     ```
-2.  Bağımlılıkları yükleyin:
+
+2.  Install dependencies:
     ```bash
     npm install
-    # veya
-    yarn install
     ```
-3.  Çevre değişkenlerini ayarlayın. `.env.local` dosyası oluşturarak `API_KEYS` gibi değişkenleri tanımlamanız gerekebilir.
+
+3.  Configure the environment variables by creating a `.env.local` file in the root directory:
+    ```env
+    API_KEYS=dev_key_admin_1,dev_key_device_2
     ```
-    API_KEYS=YOUR_SECRET_API_KEY_1,YOUR_SECRET_API_KEY_2
-    ```
-4.  Uygulamayı geliştirme modunda başlatın:
+
+4.  Start the application in development mode:
     ```bash
     npm run dev
-    # veya
-    yarn dev
     ```
 
-Uygulama `http://localhost:3000` adresinde çalışacaktır.
-
-## Katkıda Bulunma
-
-Katkıda bulunmak isterseniz, lütfen bir `issue` açın veya bir `pull request` gönderin.
-
-## Lisans
-
-Bu proje için lisans bilgisi belirtilmemiştir.
+The application will be accessible locally at `http://localhost:3000`.
