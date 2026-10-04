@@ -1,45 +1,81 @@
-'use client';
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import {
+  Sprout,
+  Trees,
+  Trophy,
+  CookingPot,
+  ArrowUpRight,
+  LogOut,
+} from "lucide-react";
+import { useForest } from "@/components/forest/provider";
+const navItems = [
+  { label: "Fidanım", href: "/my-plant", icon: Sprout },
+  { label: "Ormanımız", href: "/forest", icon: Trees },
+  { label: "Paylaşım Kazanı", href: "/paylasim-kazani", icon: CookingPot },
+  { label: "Liderlik Tablosu", href: "/leaderboard", icon: Trophy },
+];
 export default function Navigation() {
-  const pathname = usePathname();
-  const navItems = [
-    { label: "Liderlik Tablosu", href: "/" },
-    { label: "Hakkımızda", href: "/about" },
-  ];
-
+  const path = usePathname(),
+    { data, openLogin, logout } = useForest();
   return (
-    <nav className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-700/50 rounded-full shadow-lg shadow-zinc-900/5 dark:shadow-zinc-950/50 px-2 py-2">
-        <div className="flex items-center gap-1">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  relative px-6 py-2 rounded-full font-medium text-sm
-                  transition-all duration-200 ease-out
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 
-                  focus-visible:ring-[#008C49] dark:focus-visible:ring-[#008C49]
-                  ${isActive
-                    ? "bg-[#008C49] text-white shadow-sm"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-white hover:bg-[#008C49]"
-                  }
-                `}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+    <header className="forest-header">
+      <Link
+        href="/"
+        className="forest-brand"
+        aria-label="Tabaktan Ormana ana sayfa"
+      >
+        <span className="brand-mark">
+          <Sprout size={27} aria-hidden="true" />
+        </span>
+        <span>
+          tabaktan
+          <span className="brand-second">
+            ormana<span className="brand-dot">.</span>
+          </span>
+        </span>
+      </Link>
+      <nav className="forest-nav" aria-label="Ana menü">
+        {navItems.map(({ href, label, icon: Icon }) => (
+          <Link
+            href={href}
+            key={href}
+            className={
+              path === href || (path === "/" && href === "/my-plant")
+                ? "active"
+                : ""
+            }
+            aria-current={
+              path === href || (path === "/" && href === "/my-plant")
+                ? "page"
+                : undefined
+            }
+          >
+            <Icon size={20} aria-hidden="true" />
+            <span>{label}</span>
+          </Link>
+        ))}
+      </nav>
+      <div className="nav-account">
+        {data && !data.demo ? (
+          <>
+            <span className="account-avatar">{data.me?.name.slice(0, 1)}</span>
+            <span className="account-name">{data.me?.name.split(" ")[0]}</span>
+            <button
+              onClick={() => void logout()}
+              aria-label="Çıkış yap"
+              title="Çıkış yap"
+            >
+              <LogOut size={19} aria-hidden="true" />
+            </button>
+          </>
+        ) : (
+          <button className="login-link" onClick={openLogin}>
+            Kartımla giriş <ArrowUpRight size={18} aria-hidden="true" />
+          </button>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }

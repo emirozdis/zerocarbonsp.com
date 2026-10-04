@@ -1,271 +1,140 @@
-// src/app/api/users/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
-import { randomUUID } from 'crypto';
-
-// ===== TYPES =====
-interface UserData {
-  uid: string;
-  displayName: string;
-  cardID: string;
-}
-
-// ===== CONFIGURATION =====
-const VALID_API_KEYS = process.env.API_KEYS?.split(',') || ['ESP01_SECRET_KEY'];
-const API_KEY_HEADER = 'x-api-key';
-
-// ===== DATABASE FUNCTIONS =====
-async function openDB(): Promise<Database> {
-  return open({
-    filename: './database.sqlite',
-    driver: sqlite3.Database,
+import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { withDB } from "@/server/db";
+import { deviceAuthorized } from "@/server/auth";
+export const runtime = "nodejs";
+const unauthorized = () =>
+  NextResponse.json(
+    { success: false, error: "Yetkisiz erişim" },
+    { status: 401 },
+  );
+export async function GET(req: NextRequest) {
+  if (!deviceAuthorized(req)) return unauthorized();
+  return withDB(async (db) => {
+    const card = req.nextUrl.searchParams.get("cardID");
+    const data = card
+      ? await db.get(
+          "SELECT uid,displayName,schoolId FROM users WHERE cardID = ?",
+          card,
+        )
+      : await db.all(
+          "SELECT uid,displayName,schoolId FROM users ORDER BY displayName",
+        );
+    return NextResponse.json(
+      { success: !!data, data },
+      { status: data ? 200 : 404 },
+    );
   });
 }
-
-async function ensureUsersTable(db: Database) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      uid TEXT PRIMARY KEY,
-      cardID TEXT UNIQUE NOT NULL,
-      displayName TEXT NOT NULL,
-      totalCO2 REAL DEFAULT 0,
-      totalWater REAL DEFAULT 0,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-}
-
-// ===== VALIDATION FUNCTIONS =====
-function validateApiKey(req: NextRequest): boolean {
-  const apiKey = req.headers.get(API_KEY_HEADER);
-  return apiKey !== null && VALID_API_KEYS.includes(apiKey);
-}
-
-// ===== RESPONSE HELPERS =====
-function createUnauthorizedResponse(): NextResponse {
-  return NextResponse.json(
-    {
-      success: false,
-      error: 'Yetkisiz erisim: Gecersiz veya eksik API anahtari'
-    },
-    { status: 401 }
-  );
-}
-
-// ===== GET /api/users - Fetch user by cardID or all users (NO API KEY REQUIRED) =====
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
+  if (!deviceAuthorized(req)) return unauthorized();
+  let body;
   try {
-    const db = await openDB();
-    await ensureUsersTable(db);
-
-    const cardID = req.nextUrl.searchParams.get('cardID');
-
-    if (cardID) {
-      // Fetch specific user by cardID
-      const user: Pick<UserData, 'uid' | 'displayName'> | undefined = await db.get(
-        'SELECT uid, displayName FROM users WHERE cardID = ?',
-        [cardID]
-      );
-
-      if (!user) {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Geçersiz JSON" },
+      { status: 400 },
+    );
+  }
+  if (!body || typeof body !== "object")
+    return NextResponse.json(
+      { success: false, error: "Geçersiz JSON" },
+      { status: 400 },
+    );
+  const { cardID, displayName, schoolId = "default", schoolName } = body;
+  if (
+    typeof cardID !== "string" ||
+    !cardID.trim() ||
+    cardID.length > 128 ||
+    typeof displayName !== "string" ||
+    !displayName.trim() ||
+    displayName.length > 80 ||
+    typeof schoolId !== "string" ||
+    !/^[a-zA-Z0-9_-]{1,80}$/.test(schoolId) ||
+    (schoolName !== undefined &&
+      (typeof schoolName !== "string" ||
+        !schoolName.trim() ||
+        schoolName.length > 120))
+  )
+    return NextResponse.json(
+      { success: false, error: "Geçersiz öğrenci veya okul bilgisi" },
+      { status: 400 },
+    );
+  try {
+    return await withDB(async (db) => {
+      await db.exec("BEGIN IMMEDIATE");
+      try {
+        if (schoolName)
+          await db.run("INSERT OR IGNORE INTO schools(id,name) VALUES (?,?)", [
+            schoolId,
+            schoolName.trim(),
+          ]);
+        if (!(await db.get("SELECT id FROM schools WHERE id = ?", schoolId))) {
+          await db.exec("ROLLBACK");
+          return NextResponse.json(
+            { success: false, error: "Okul bulunamadı; schoolName gerekli" },
+            { status: 400 },
+          );
+        }
+        const uid = randomUUID();
+        await db.run(
+          "INSERT INTO users(uid,cardID,displayName,schoolId,plotIndex) VALUES (?,?,?,?,(SELECT COALESCE(MAX(plotIndex),-1)+1 FROM users WHERE schoolId = ?))",
+          [uid, cardID.trim(), displayName.trim(), schoolId, schoolId],
+        );
+        await db.exec("COMMIT");
         return NextResponse.json(
           {
-            success: false,
-            error: 'Kullanici bulunamadi'
+            success: true,
+            data: {
+              uid,
+              cardID: cardID.trim(),
+              displayName: displayName.trim(),
+              schoolId,
+            },
           },
-          { status: 404 }
+          { status: 201 },
         );
+      } catch (error) {
+        await db.exec("ROLLBACK");
+        throw error;
       }
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: user
-        },
-        { status: 200 }
-      );
-    }
-
-    // Fetch all users - PUBLIC LIST
-    const users: Pick<UserData, 'uid' | 'displayName'>[] = await db.all(
-      'SELECT uid, displayName FROM users ORDER BY displayName ASC'
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: users,
-        count: users.length
-      },
-      { status: 200 }
-    );
+    });
   } catch (error) {
-    console.error('GET /api/users error:', error);
+    const conflict = error instanceof Error && error.message.includes("UNIQUE");
     return NextResponse.json(
       {
         success: false,
-        error: 'Kullanicilar yukleme basarisiz'
+        error: conflict ? "Kart zaten kayıtlı" : "Kayıt başarısız",
       },
-      { status: 500 }
+      { status: conflict ? 409 : 500 },
     );
   }
 }
-
-// ===== POST /api/users - Create new user (API KEY REQUIRED) =====
-export async function POST(req: NextRequest) {
-  try {
-    // API Key Validation - REQUIRED for writes
-    if (!validateApiKey(req)) {
-      return createUnauthorizedResponse();
-    }
-
-    const { cardID, displayName } = await req.json();
-
-    // Field validation
-    if (!cardID || !displayName) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Eksik alanlar: cardID veya displayName'
-        },
-        { status: 400 }
-      );
-    }
-
-    // Type validation
-    if (typeof cardID !== 'string' || typeof displayName !== 'string') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'cardID ve displayName metin olmali'
-        },
-        { status: 400 }
-      );
-    }
-
-    // Length validation
-    if (cardID.trim().length === 0 || displayName.trim().length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'cardID ve displayName bos olmamali'
-        },
-        { status: 400 }
-      );
-    }
-
-    const db = await openDB();
-    await ensureUsersTable(db);
-
-    const uid = randomUUID();
-    const trimmedCardID = cardID.trim();
-    const trimmedDisplayName = displayName.trim();
-
+export async function DELETE(req: NextRequest) {
+  if (!deviceAuthorized(req)) return unauthorized();
+  const uid = req.nextUrl.searchParams.get("uid");
+  if (!uid)
+    return NextResponse.json(
+      { success: false, error: "uid gerekli" },
+      { status: 400 },
+    );
+  return withDB(async (db) => {
+    await db.exec("BEGIN IMMEDIATE");
     try {
       await db.run(
-        'INSERT INTO users (uid, cardID, displayName, totalCO2, totalWater) VALUES (?, ?, ?, 0, 0)',
-        [uid, trimmedCardID, trimmedDisplayName]
+        "DELETE FROM records WHERE cardID = (SELECT cardID FROM users WHERE uid = ?)",
+        uid,
       );
-
+      const result = await db.run("DELETE FROM users WHERE uid = ?", uid);
+      await db.exec("COMMIT");
       return NextResponse.json(
-        {
-          success: true,
-          message: 'Kullanici basarili kaydedildi',
-          data: {
-            uid,
-            cardID: trimmedCardID,
-            displayName: trimmedDisplayName
-          }
-        },
-        { status: 201 }
+        { success: !!result.changes },
+        { status: result.changes ? 200 : 404 },
       );
-    } catch (error: any) {
-      if (error?.message?.includes('UNIQUE constraint failed')) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Bu kartID zaten kayitli'
-          },
-          { status: 409 }
-        );
-      }
+    } catch (error) {
+      await db.exec("ROLLBACK");
       throw error;
     }
-  } catch (error) {
-    console.error('POST /api/users error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Kullanici ekleme basarisiz'
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// ===== DELETE /api/users - Delete user (API KEY REQUIRED) =====
-export async function DELETE(req: NextRequest) {
-  try {
-    // API Key Validation - REQUIRED for writes
-    if (!validateApiKey(req)) {
-      return createUnauthorizedResponse();
-    }
-
-    const uid = req.nextUrl.searchParams.get('uid');
-
-    if (!uid) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Eksik alan: uid'
-        },
-        { status: 400 }
-      );
-    }
-
-    const db = await openDB();
-    await ensureUsersTable(db);
-
-    // Check if user exists
-    const user = await db.get(
-      'SELECT uid FROM users WHERE uid = ?',
-      [uid]
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Kullanici bulunamadi'
-        },
-        { status: 404 }
-      );
-    }
-
-    // Delete user and their records
-    await db.run(
-      'DELETE FROM records WHERE cardID = (SELECT cardID FROM users WHERE uid = ?)',
-      [uid]
-    );
-    await db.run('DELETE FROM users WHERE uid = ?', [uid]);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Kullanici basarili silindi'
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('DELETE /api/users error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Kullanici silme basarisiz'
-      },
-      { status: 500 }
-    );
-  }
+  });
 }

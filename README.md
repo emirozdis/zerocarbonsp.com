@@ -1,3 +1,13 @@
+# Tabaktan Ormana — Living School Forest
+
+The project now includes individual procedural trees, recoverable plant health, school forests, card sign-in, personal progress, and collective goals. Every post-meal card scan is compared with configured constant meal averages. Signed-out visitors can explore a clearly labeled interactive preview.
+
+See [setup and API changes](docs/living-forest-setup.md) before connecting devices or migrating existing records. In particular, configure `API_KEYS` and meal baselines; previously public integration reads now require authentication.
+
+For the experimental one-school, ten-student database, see [showcase data and test cards](docs/showcase-data.md). Run `npm run seed:showcase` to recreate it on a fresh checkout after copying `.env.example` to `.env.local`.
+
+The original project background follows.
+
 # Zero Carbon School Project (Zero Carbon SP)
 
 ![About Page](./screenshots/about.png)

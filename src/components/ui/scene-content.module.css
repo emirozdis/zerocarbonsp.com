@@ -1,0 +1,18 @@
+.surface {
+  --scene-overlap: 16px;
+  position: relative;
+  z-index: 1;
+  display: flow-root;
+  margin-top: calc(-1 * var(--scene-overlap));
+  padding-top: var(--scene-overlap);
+  border-top: 1px solid var(--forest-line);
+  border-radius: 28px 28px 0 0;
+  background: var(--forest-paper);
+}
+
+@media (max-width: 760px) {
+  .surface {
+    --scene-overlap: 8px;
+    border-radius: 20px 20px 0 0;
+  }
+}

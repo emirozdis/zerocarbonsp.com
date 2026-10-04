@@ -1,0 +1,24 @@
+/* Shared interface palette and type scale. Keep scene artwork independent. */
+:root {
+  --ui-ink: #123b30;
+  --ui-muted: #52675e;
+  --ui-brand: #08734f;
+  --ui-brand-hover: #055c3e;
+  --ui-brand-soft: #dcefe4;
+  --ui-teal: #086b78;
+  --ui-teal-soft: #dceff2;
+  --ui-amber: #8a510b;
+  --ui-amber-soft: #f9e8c5;
+  --ui-copper: #94462e;
+  --ui-copper-soft: #f6e3d9;
+  --ui-paper: #f6f7f3;
+  --ui-surface: #ffffff;
+  --ui-line: #cad9cf;
+  --ui-glass: #ffffffed;
+  --ui-shadow: 0 12px 32px #123b3014, 0 2px 6px #123b3008;
+  --ui-font: var(--font-geist-sans), "Segoe UI", sans-serif;
+  --ui-display: var(--ui-font);
+  --ui-text-caption: 0.6875rem;
+  --ui-text-small: 0.75rem;
+  --ui-text-body: 0.875rem;
+}

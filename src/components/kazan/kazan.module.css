@@ -1,0 +1,572 @@
+.page {
+  --ink: var(--forest-ink);
+  --muted: var(--forest-muted);
+  --line: var(--forest-line);
+  color: var(--ink);
+  font-family: var(--ui-font);
+}
+.hero {
+  position: relative;
+  isolation: isolate;
+  height: clamp(670px, 80vh, 820px);
+  overflow: hidden;
+  background: #e9ecd9;
+}
+.courtyard {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.heading {
+  position: absolute;
+  z-index: 4;
+  top: 35px;
+  left: max(40px, calc((100vw - 1150px) / 2));
+  right: max(40px, calc((100vw - 1150px) / 2));
+  width: fit-content;
+  max-width: calc(100% - 380px);
+}
+.schoolLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--forest-muted);
+  font-size: var(--ui-text-small);
+}
+.heading h1 {
+  font-family: var(--ui-display);
+  font-weight: 600;
+  font-size: clamp(39px, 4vw, 53px);
+  letter-spacing: -1.8px;
+  line-height: 1.15;
+  margin: 13px 0 11px;
+}
+.heading h1 > span {
+  color: var(--ui-amber);
+}
+.helpButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 11px 15px;
+  border: 1px solid #ffffffad;
+  border-radius: 10px;
+  color: var(--forest-muted);
+  font-size: var(--ui-text-body);
+  white-space: nowrap;
+  background: #fafbf1c4;
+  backdrop-filter: blur(14px);
+  transition: background 0.2s;
+}
+.helpButton:hover {
+  background: #f8faef;
+}
+.cauldronPanel {
+  position: absolute;
+  inset: 0;
+}
+.scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.scene :global(.kazan-illustration) {
+  position: absolute;
+  width: min(82vw, 1000px);
+  height: auto;
+  left: 42%;
+  bottom: -25px;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+.scene :global(.kazan-produce) {
+  transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.progressSection {
+  position: absolute;
+  z-index: 4;
+  right: max(40px, calc((100vw - 1150px) / 2));
+  top: 35px;
+  width: 275px;
+  padding: 22px;
+  background: var(--ui-glass);
+  border: 1px solid #ffffffbf;
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 45px #123b3018;
+}
+.butterfly {
+  animation: butterfly-drift 7s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.butterfly:nth-last-of-type(2) {
+  animation-delay: -3s;
+}
+@keyframes butterfly-drift {
+  from {
+    translate: 0 0;
+    rotate: -5deg;
+  }
+  to {
+    translate: 9px -11px;
+    rotate: 7deg;
+  }
+}
+.details {
+  max-width: 1180px;
+  margin: auto;
+  padding: 0 24px 10px;
+}
+.mobileGarden {
+  display: none;
+}
+.progressHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 11px;
+  flex-wrap: wrap;
+}
+.progressHeading > div > span {
+  font-size: var(--ui-text-caption);
+  letter-spacing: 1.3px;
+  color: var(--forest-muted);
+  display: block;
+  margin-bottom: 7px;
+}
+.progressHeading strong {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+.progressHeading strong small {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--forest-muted);
+  letter-spacing: -0.2px;
+}
+.progressTrack {
+  height: 10px;
+  border-radius: 10px;
+  background: #e6eadb;
+  position: relative;
+  overflow: hidden;
+  margin: 17px 0 0;
+}
+.progressTrack > span {
+  height: 100%;
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--ui-brand), var(--ui-teal));
+  transition: width 1s ease;
+}
+.progressTrack i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fafbf280;
+}
+.goalCard {
+  position: absolute;
+  z-index: 4;
+  top: 190px;
+  right: max(40px, calc((100vw - 1150px) / 2));
+  width: 275px;
+  background: var(--ui-glass);
+  border: 1px solid #ffffffbf;
+  border-radius: 18px;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 45px #123b3018;
+}
+.goalArt {
+  height: 135px;
+  position: relative;
+  background: #eef0dfab;
+  overflow: hidden;
+}
+.saplingScene {
+  width: 100%;
+  height: 139px;
+  position: absolute;
+  bottom: 0;
+}
+.goalBody {
+  padding: 21px 23px 20px;
+}
+.goalBody h2 {
+  font-family: var(--ui-display);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+  margin: 10px 0 14px;
+}
+.goalButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  width: 100%;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #f6f5e6;
+  font-size: var(--ui-text-body);
+  transition: background 0.2s;
+}
+.goalButton:hover {
+  background: var(--ui-brand-hover);
+}
+.collectiveStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 28px 8px;
+  margin-top: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.collectiveStats > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 25px;
+  border-right: 1px solid var(--line);
+}
+.collectiveStats > div:first-child {
+  padding-left: 0;
+}
+.collectiveStats > div:last-child {
+  border: 0;
+}
+.statIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: 43px;
+  width: 43px;
+  border-radius: 13px;
+  background: var(--ui-brand-soft);
+  color: var(--ui-brand);
+}
+.collectiveStats strong {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+}
+.collectiveStats strong small {
+  font-size: var(--ui-text-body);
+  font-weight: 400;
+  color: var(--forest-muted);
+  letter-spacing: 0;
+}
+.collectiveStats p {
+  font-size: var(--ui-text-caption);
+  margin-top: 4px;
+  color: var(--forest-muted);
+  line-height: 1.5;
+}
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  background: #f0e8d5;
+  color: var(--ui-amber);
+  font-size: var(--ui-text-body);
+}
+.error button {
+  text-decoration: underline;
+}
+.dialog {
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: 20px;
+  padding: 30px;
+  max-height: 85dvh;
+  overflow-y: auto;
+  font-family: var(--ui-font);
+}
+.dialog :global([data-slot="dialog-title"]) {
+  font-family: var(--ui-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.dialog :global([data-slot="dialog-description"]) {
+  color: var(--forest-muted);
+  font-size: var(--ui-text-body);
+  line-height: 1.8;
+}
+.dialogIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--ui-brand-soft);
+  color: var(--forest-muted);
+  display: grid;
+  place-items: center;
+}
+.instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+  padding: 10px 0;
+}
+.instructions li {
+  display: flex;
+  gap: 13px;
+}
+.instructions li > span {
+  height: 27px;
+  width: 27px;
+  border-radius: 50%;
+  background: var(--ui-brand-soft);
+  color: var(--forest-muted);
+  font-size: var(--ui-text-body);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.instructions strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--ui-text-body);
+  font-weight: 600;
+}
+.instructions p,
+.finePrint,
+.detailCopy {
+  font-size: var(--ui-text-body);
+  line-height: 1.8;
+  color: var(--forest-muted);
+  margin-top: 6px;
+}
+.finePrint {
+  border-top: 1px solid var(--forest-line);
+  padding-top: 15px;
+}
+.goalDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #ecf1e1;
+  padding: 22px;
+  border-radius: 12px;
+}
+.goalDetail strong {
+  font-size: 28px;
+  font-weight: 600;
+}
+.goalDetail span {
+  font-size: var(--ui-text-body);
+  color: var(--forest-muted);
+}
+.proposalNote {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #eceedd;
+  border-radius: 8px;
+  padding: 13px;
+  font-size: var(--ui-text-body);
+  line-height: 1.7;
+  color: var(--forest-muted);
+}
+.proposalNote svg {
+  flex-shrink: 0;
+}
+.progressPercent {
+  font-size: 15px;
+  color: var(--forest-muted);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 1050px) {
+  .heading {
+    left: 28px;
+    right: auto;
+  }
+  .progressSection {
+    right: 28px;
+    width: 245px;
+    padding: 20px;
+  }
+  .progressHeading strong {
+    font-size: 25px;
+  }
+  .progressHeading strong small {
+    font-size: var(--ui-text-body);
+  }
+  .goalCard {
+    right: 28px;
+    width: 245px;
+  }
+  .goalBody {
+    padding: 20px;
+  }
+  .goalBody h2 {
+    font-size: 27px;
+  }
+  .scene :global(.kazan-illustration) {
+    width: min(92vw, 850px);
+    left: 37%;
+    bottom: -5px;
+  }
+  .collectiveStats > div {
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .collectiveStats strong {
+    font-size: 19px;
+  }
+}
+@media (max-width: 760px) {
+  .hero {
+    height: 800px;
+  }
+  .courtyard {
+    height: 670px;
+  }
+  .heading {
+    top: 28px;
+    left: 22px;
+    right: 22px;
+    max-width: none;
+  }
+  .schoolLine {
+    font-size: var(--ui-text-caption);
+  }
+  .heading h1 {
+    font-size: 37px;
+    margin: 13px 0 16px;
+  }
+  .heading > .helpButton {
+    font-size: var(--ui-text-caption);
+    padding: 8px 11px;
+    min-height: 34px;
+  }
+  .scene :global(.kazan-illustration) {
+    width: min(140vw, 580px);
+    left: 50%;
+    top: 205px;
+    bottom: auto;
+  }
+  .mobileGarden {
+    display: initial;
+  }
+  .progressSection {
+    top: 170px;
+    right: 20px;
+    width: 220px;
+    padding: 16px;
+  }
+  .progressHeading {
+    flex-wrap: nowrap;
+    align-items: flex-end;
+  }
+  .progressHeading strong {
+    font-size: 23px;
+  }
+  .progressHeading strong small {
+    font-size: var(--ui-text-body);
+  }
+  .progressHeading > div > span {
+    font-size: var(--ui-text-caption);
+    letter-spacing: 1px;
+  }
+  .progressPercent {
+    font-size: var(--ui-text-body);
+  }
+  .progressTrack {
+    height: 7px;
+    margin-top: 12px;
+  }
+  .goalCard {
+    top: 640px;
+    left: 20px;
+    right: 20px;
+    width: auto;
+    display: grid;
+    grid-template-columns: 89px minmax(0, 1fr);
+    border-radius: 14px;
+  }
+  .goalArt {
+    height: 100%;
+  }
+  .saplingScene {
+    width: 240px;
+    max-width: none;
+    height: 140px;
+    left: -76px;
+    bottom: 0;
+  }
+  .goalBody {
+    padding: 15px 16px;
+  }
+  .goalBody h2 {
+    font-size: 24px;
+    margin: 0 0 12px;
+  }
+  .goalButton {
+    font-size: var(--ui-text-small);
+    padding: 12px 13px;
+  }
+  .details {
+    padding: 0 20px 10px;
+  }
+  .collectiveStats {
+    padding: 23px 0;
+    gap: 12px;
+  }
+  .collectiveStats > div {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0;
+    border: 0;
+    gap: 10px;
+  }
+  .statIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .statIcon svg {
+    width: 18px;
+  }
+  .collectiveStats strong {
+    display: block;
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  .collectiveStats strong small {
+    display: block;
+    font-size: var(--ui-text-caption);
+    margin-top: 4px;
+  }
+  .collectiveStats p {
+    font-size: var(--ui-text-caption);
+  }
+  .dialog {
+    padding: 24px;
+  }
+  .dialog :global([data-slot="dialog-title"]) {
+    font-size: 25px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,329 +1,213 @@
-// src/app/api/records/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
-
-// ===== TYPES =====
-type WasteType = 0 | 1 | 2;
-
-interface WasteRecord {
-  id: number;
-  cardID: string;
-  weight: number;
-  co2Emission: number;
-  waterFootprint: number;
-  createdAt: string;
-  wasteType: WasteType;
-}
-
-interface UserData {
-  uid: string;
-  displayName: string;
-  totalCO2: number;
-  totalWater: number;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-// ===== CONFIGURATION =====
-const CO2_FACTORS: Record<WasteType, number> = {
-  0: 1,
-  1: 5.5,
-  2: 16.5,
-};
-
-// Water footprint factors (liters per gram of waste)
-// Type 0 (Vegetables & Fruits): ~0.322 L/g (average water footprint for produce)
-// Type 1 (Milk & Milk Products): ~1.020 L/g (average water footprint for dairy)
-// Type 2 (Meat Products): ~15.415 L/g (average water footprint for meat)
-const WATER_FACTORS: Record<WasteType, number> = {
-  0: 0.322,
-  1: 1.020,
-  2: 15.415,
-};
-
-const VALID_API_KEYS = process.env.API_KEYS?.split(',') || ['ESP01_SECRET_KEY'];
-const API_KEY_HEADER = 'x-api-key';
-
-// ===== DATABASE FUNCTIONS =====
-async function openDB(): Promise<Database> {
-  return open({
-    filename: './database.sqlite',
-    driver: sqlite3.Database,
-  });
-}
-
-async function ensureTables(db: Database) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      uid TEXT PRIMARY KEY,
-      cardID TEXT UNIQUE NOT NULL,
-      displayName TEXT NOT NULL,
-      totalCO2 REAL DEFAULT 0,
-      totalWater REAL DEFAULT 0,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      cardID TEXT NOT NULL,
-      weight REAL NOT NULL,
-      co2Emission REAL NOT NULL,
-      waterFootprint REAL NOT NULL,
-      createdAt TEXT NOT NULL,
-      wasteType INTEGER NOT NULL CHECK(wasteType IN (0, 1, 2)),
-      FOREIGN KEY (cardID) REFERENCES users(cardID)
-    );
-  `);
-
-  await db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_records_cardID ON records(cardID);
-    CREATE INDEX IF NOT EXISTS idx_records_createdAt ON records(createdAt);
-  `);
-}
-
-// ===== VALIDATION FUNCTIONS =====
-function validateApiKey(req: NextRequest): boolean {
-  const apiKey = req.headers.get(API_KEY_HEADER);
-  return apiKey !== null && VALID_API_KEYS.includes(apiKey);
-}
-
-function validateWasteType(type: any): type is WasteType {
-  return [0, 1, 2].includes(type);
-}
-
-function validateWeight(weight: any): boolean {
-  return typeof weight === 'number' && weight >= 0 && isFinite(weight);
-}
-
-// ===== RESPONSE HELPERS =====
-function createUnauthorizedResponse(): NextResponse {
-  return NextResponse.json(
-    {
-      success: false,
-      error: 'Yetkisiz erisim: Gecersiz veya eksik API anahtari'
-    },
-    { status: 401 }
-  );
-}
-
-function calculateCO2(weight: number, type: WasteType): number {
-  return weight * CO2_FACTORS[type];
-}
-
-function calculateWaterFootprint(weight: number, type: WasteType): number {
-  return weight * WATER_FACTORS[type];
-}
-
-// ===== POST /api/records - Save waste record (API KEY REQUIRED) =====
+import { NextRequest, NextResponse } from "next/server";
+import { withDB, baseline } from "@/server/db";
+import { currentUser, deviceAuthorized } from "@/server/auth";
+export const runtime = "nodejs";
+import { co2Factors, waterFactors } from "@/lib/forest/impact";
 export async function POST(req: NextRequest) {
+  if (!deviceAuthorized(req))
+    return NextResponse.json(
+      { success: false, error: "Yetkisiz erişim" },
+      { status: 401 },
+    );
+  let body;
   try {
-    // API Key Validation - REQUIRED for writes
-    if (!validateApiKey(req)) {
-      return createUnauthorizedResponse();
-    }
-
-    const body = await req.json();
-    const { cardUID, type, weight } = body;
-
-    // Field validation
-    if (!cardUID || type === undefined || weight === undefined) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Eksik alanlar: cardUID, type veya weight' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Weight validation
-    if (!validateWeight(weight)) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Agirlik bir sayi olmali ve >= 0 olmali' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Waste type validation
-    if (!validateWasteType(type)) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Gecersiz atik turu. 0, 1 veya 2 olmali' 
-        },
-        { status: 400 }
-      );
-    }
-
-    const db = await openDB();
-    await ensureTables(db);
-
-    // Check if user exists
-    const user = await db.get(
-      'SELECT uid FROM users WHERE cardID = ?',
-      [cardUID]
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Geçersiz JSON" },
+      { status: 400 },
     );
-
-    if (!user) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Kartid kayitli degil' 
-        },
-        { status: 404 }
-      );
-    }
-
-    // Calculate CO2 and water footprint
-    const co2Emission = calculateCO2(weight, type as WasteType);
-    const waterFootprint = calculateWaterFootprint(weight, type as WasteType);
-    const createdAt = new Date().toISOString();
-
-    // Insert record
-    const result = await db.run(
-      'INSERT INTO records (cardID, weight, co2Emission, waterFootprint, createdAt, wasteType) VALUES (?, ?, ?, ?, ?, ?)',
-      [cardUID, weight, co2Emission, waterFootprint, createdAt, type]
+  }
+  if (!body || typeof body !== "object")
+    return NextResponse.json(
+      { success: false, error: "Geçersiz JSON" },
+      { status: 400 },
     );
-
-    // Update user total CO2 and water
-    await db.run(
-      'UPDATE users SET totalCO2 = totalCO2 + ?, totalWater = totalWater + ? WHERE cardID = ?',
-      [co2Emission, waterFootprint, cardUID]
-    );
-
+  const { cardUID, type, weight, eventId } = body;
+  if (
+    typeof cardUID !== "string" ||
+    !cardUID.trim() ||
+    ![0, 1, 2].includes(type) ||
+    typeof weight !== "number" ||
+    !Number.isFinite(weight) ||
+    weight < 0 ||
+    weight > 10000 ||
+    (eventId !== undefined &&
+      (typeof eventId !== "string" || !eventId.trim() || eventId.length > 128))
+  ) {
     return NextResponse.json(
       {
-        success: true,
-        message: 'Kayit basarili kaydedildi',
-        data: {
-          recordId: result.lastID,
-          co2Emission: parseFloat(co2Emission.toFixed(2)),
-          waterFootprint: parseFloat(waterFootprint.toFixed(2)),
-          weight,
-          wasteType: type
-        }
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('POST /api/records error:', error);
-    return NextResponse.json(
-      { 
         success: false,
-        error: 'Kayit kaydetme basarisiz' 
+        error: "Geçersiz kart, atık türü, ağırlık veya olay kimliği",
       },
-      { status: 500 }
+      { status: 400 },
+    );
+  }
+  try {
+    return await withDB(async (db) => {
+      await db.exec("BEGIN IMMEDIATE");
+      try {
+        const user = await db.get(
+          "SELECT uid, schoolId FROM users WHERE cardID = ?",
+          cardUID.trim(),
+        );
+        if (!user) {
+          await db.exec("ROLLBACK");
+          return NextResponse.json(
+            { success: false, error: "Kart kayıtlı değil" },
+            { status: 404 },
+          );
+        }
+        if (eventId) {
+          const previous = await db.get(
+            "SELECT * FROM records WHERE eventId = ?",
+            eventId,
+          );
+          if (previous) {
+            await db.exec("ROLLBACK");
+            if (
+              previous.cardID !== cardUID.trim() ||
+              previous.weight !== weight ||
+              previous.wasteType !== type
+            )
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: "Bu olay kimliği farklı bir kayda ait",
+                },
+                { status: 409 },
+              );
+            return NextResponse.json({
+              success: true,
+              duplicate: true,
+              data: {
+                recordId: previous.id,
+                co2Emission: previous.co2Emission,
+                waterFootprint: previous.waterFootprint,
+                weight,
+                wasteType: type,
+              },
+            });
+          }
+        }
+        const co2Emission = weight * co2Factors[type],
+          waterFootprint = weight * waterFactors[type];
+        const result = await db.run(
+          "INSERT INTO records(cardID,weight,co2Emission,waterFootprint,createdAt,wasteType,eventId,baselineWeight,baselineCO2,baselineWater,targetRatio,schoolId,rulesVersion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)",
+          [
+            cardUID.trim(),
+            weight,
+            co2Emission,
+            waterFootprint,
+            new Date().toISOString(),
+            type,
+            eventId || null,
+            baseline.weight,
+            baseline.co2,
+            baseline.water,
+            baseline.targetRatio,
+            user.schoolId,
+          ],
+        );
+        await db.run(
+          "UPDATE users SET totalCO2 = totalCO2 + ?, totalWater = totalWater + ? WHERE uid = ?",
+          [co2Emission, waterFootprint, user.uid],
+        );
+        await db.exec("COMMIT");
+        return NextResponse.json({
+          success: true,
+          data: {
+            recordId: result.lastID,
+            co2Emission,
+            waterFootprint,
+            weight,
+            wasteType: type,
+          },
+        });
+      } catch (error) {
+        await db.exec("ROLLBACK");
+        throw error;
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { success: false, error: "Kayıt kaydedilemedi" },
+      { status: 500 },
     );
   }
 }
-
-// ===== GET /api/records - Fetch records (NO API KEY REQUIRED) =====
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const uid = searchParams.get('uid');
-
-    const db = await openDB();
-    await ensureTables(db);
-
-    if (uid) {
-      // Fetch specific user and their records
-      const user: UserData | undefined = await db.get(
-        'SELECT uid, displayName, totalCO2, totalWater FROM users WHERE uid = ?',
-        [uid]
-      );
-
-      if (!user) {
+    return await withDB(async (db) => {
+      const me = await currentUser(req, db),
+        device = deviceAuthorized(req);
+      if (!me && !device)
         return NextResponse.json(
-          { 
-            success: false,
-            error: 'Kullanici bulunamadi' 
+          { success: false, error: "Kartınla giriş yap" },
+          { status: 401 },
+        );
+      const uid = req.nextUrl.searchParams.get("uid");
+      if (uid) {
+        if (!device && uid !== me?.uid)
+          return NextResponse.json(
+            { success: false, error: "Bu kayıtlar kişiye özeldir" },
+            { status: 403 },
+          );
+        const user = await db.get(
+          "SELECT uid,displayName,totalCO2,totalWater FROM users WHERE uid = ?",
+          uid,
+        );
+        if (!user)
+          return NextResponse.json(
+            { success: false, error: "Kullanıcı bulunamadı" },
+            { status: 404 },
+          );
+        const records = await db.all(
+          "SELECT r.id,r.weight,r.co2Emission,r.waterFootprint,r.createdAt,r.wasteType FROM records r JOIN users u ON u.cardID = r.cardID WHERE u.uid = ? ORDER BY r.createdAt DESC",
+          uid,
+        );
+        const aggregated: Record<
+          number,
+          { weight: number; co2: number; water: number }
+        > = {
+          0: { weight: 0, co2: 0, water: 0 },
+          1: { weight: 0, co2: 0, water: 0 },
+          2: { weight: 0, co2: 0, water: 0 },
+        };
+        for (const record of records) {
+          aggregated[record.wasteType].weight += record.weight;
+          aggregated[record.wasteType].co2 += record.co2Emission;
+          aggregated[record.wasteType].water += record.waterFootprint;
+        }
+        return NextResponse.json(
+          {
+            success: true,
+            data: { user, records, aggregated, recordCount: records.length },
           },
-          { status: 404 }
+          { headers: { "Cache-Control": "private, no-store" } },
         );
       }
-
-      // Get all records for user
-      const records: WasteRecord[] = await db.all(
-        `SELECT r.id, r.cardID, r.weight, r.co2Emission, r.waterFootprint, r.createdAt, r.wasteType 
-         FROM records r 
-         INNER JOIN users u ON r.cardID = u.cardID 
-         WHERE u.uid = ? 
-         ORDER BY r.createdAt DESC`,
-        [uid]
+      const users = await db.all(
+        `SELECT u.uid, u.displayName, u.totalCO2, u.totalWater,
+          COUNT(r.id) AS mealCount,
+          COALESCE(SUM(r.weight), 0) AS totalWaste,
+          COALESCE(SUM(r.baselineWeight), 0) AS totalMealWeight
+         FROM users u LEFT JOIN records r ON r.cardID = u.cardID
+         ${device ? "" : "WHERE u.schoolId = ?"}
+         GROUP BY u.uid ORDER BY u.uid`,
+        ...(device ? [] : [me!.schoolId]),
       );
-
-      // Get aggregated stats by waste type
-      const aggregated = await db.all(
-        `SELECT r.wasteType, SUM(r.weight) as totalWeight, SUM(r.co2Emission) as totalCO2, SUM(r.waterFootprint) as totalWater
-         FROM records r 
-         INNER JOIN users u ON r.cardID = u.cardID 
-         WHERE u.uid = ? 
-         GROUP BY r.wasteType`,
-        [uid]
-      );
-
-      const aggregatedData: Record<WasteType, { weight: number; co2: number; water: number }> = {
-        0: { weight: 0, co2: 0, water: 0 },
-        1: { weight: 0, co2: 0, water: 0 },
-        2: { weight: 0, co2: 0, water: 0 },
-      };
-
-      aggregated.forEach((row: any) => {
-        aggregatedData[row.wasteType as WasteType] = {
-          weight: parseFloat(row.totalWeight.toFixed(2)),
-          co2: parseFloat(row.totalCO2.toFixed(2)),
-          water: parseFloat(row.totalWater.toFixed(2))
-        };
-      });
-
       return NextResponse.json(
-        {
-          success: true,
-          data: {
-            user,
-            aggregated: aggregatedData,
-            records,
-            recordCount: records.length
-          }
-        },
-        { status: 200 }
+        { success: true, data: users, count: users.length },
+        { headers: { "Cache-Control": "private, no-store" } },
       );
-    } else {
-      // Fetch all users - PUBLIC LEADERBOARD
-      const users: UserData[] = await db.all(
-        'SELECT uid, displayName, totalCO2, totalWater FROM users ORDER BY totalCO2 ASC'
-      );
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: users,
-          count: users.length
-        },
-        { status: 200 }
-      );
-    }
+    });
   } catch (error) {
-    console.error('GET /api/records error:', error);
+    console.error(error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Kayitlar yukleme basarisiz' 
-      },
-      { status: 500 }
+      { success: false, error: "Kayıtlar yüklenemedi" },
+      { status: 500 },
     );
   }
 }

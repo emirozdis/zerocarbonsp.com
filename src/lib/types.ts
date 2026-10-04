@@ -7,6 +7,8 @@ export interface Student {
   totalCO2: number
   waterFootprint: number
   totalWater: number
+  wasteRatio: number | null
+  mealCount: number
   avatar: string
 }
 
