@@ -828,6 +828,71 @@ input:focus-visible {
 .tree-visit .vitality {
   margin-top: 2px;
 }
+.tree-visit-tabs {
+  margin-top: 2px;
+}
+.tree-visit-tabs [data-slot="tabs-list"] {
+  margin-bottom: 8px;
+}
+.environmental-impact-summary {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+.environmental-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.environmental-impact-card {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dfe7d5;
+  border-radius: 14px;
+  background: #fff;
+}
+.environmental-impact-card > span {
+  color: var(--primary);
+}
+.environmental-impact-card small,
+.tree-offset-summary small {
+  color: var(--forest-muted);
+  font-size: var(--ui-text-caption);
+}
+.environmental-impact-card strong {
+  font-size: 20px;
+  color: #2f4930;
+}
+.environmental-impact-card em {
+  font-size: var(--ui-text-caption);
+  font-style: normal;
+  font-weight: 500;
+  color: var(--forest-muted);
+}
+.tree-offset-summary {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid #cfe1c4;
+  border-radius: 14px;
+  background: #eef6e8;
+  color: #3e643a;
+}
+.tree-offset-summary div {
+  display: grid;
+  gap: 4px;
+}
+.tree-offset-summary strong {
+  font-size: 24px;
+}
+.tree-offset-summary p {
+  margin: 0;
+  color: var(--forest-muted);
+  font-size: var(--ui-text-caption);
+}
 .leaderboard-page {
   padding-top: 44px;
 }
@@ -1458,6 +1523,9 @@ input:focus-visible {
   }
   .tree-visit .world {
     height: 270px;
+  }
+  .environmental-impact-grid {
+    grid-template-columns: 1fr;
   }
   .leaderboard-page {
     padding-top: 30px;

@@ -109,6 +109,29 @@ test("forest summarizes the actual student plants without double penalties", () 
   assert.equal(result.meals, 2);
 });
 
+test("displayed report footprints do not become negative baseline savings", async () => {
+  const { createReportStudents, reportTotals } = await import("../src/lib/forest/report-dataset.ts");
+  const { dailyMeals } = await import("../src/lib/forest/model.ts");
+  const { impactMetrics } = await import("../src/lib/forest/impact.ts");
+  const students = createReportStudents({ weight: 450, co2: 1800, water: 500, targetRatio: 0.15 });
+  const plants = students.map((student) => growPlant(student, dailyMeals(student.records), now).plant);
+  assert.ok(plants[0].savedWater < 0); // Reproduces the originally mislabeled card.
+  for (const [index, plant] of plants.entries()) {
+    for (const key of ["wasteGrams", "co2Kilograms", "waterLiters"]) {
+      assert.ok(Math.abs(plant.impact[key] - reportTotals[index][key]) < 1e-8);
+    }
+    assert.ok(impactMetrics(plant.impact).every((metric) => metric.value >= 0));
+  }
+  assert.ok(Math.abs(impactMetrics(plants[0].impact)[2].value - 1.64) < 1e-8);
+  const changedBaselines = students[0].records.map((record) => ({ ...record, baselineCO2: 1, baselineWater: 1, baselineWeight: 1 }));
+  assert.deepEqual(growPlant(students[0], dailyMeals(changedBaselines), now).plant.impact, plants[0].impact);
+  const summary = summarize(plants);
+  for (const key of ["wasteGrams", "co2Kilograms", "waterLiters"]) {
+    assert.ok(Math.abs(summary.impact[key] - reportTotals.reduce((sum, total) => sum + total[key], 0)) < 1e-8);
+  }
+  assert.deepEqual(summarize([]).impact, { wasteGrams: 0, co2Kilograms: 0, waterLiters: 0 });
+});
+
 test("tree size and leaderboard agree despite meal counts, food categories, or meal order", async () => {
   const { rankStudents } = await import("../src/lib/leaderboard.ts");
   const samples = [

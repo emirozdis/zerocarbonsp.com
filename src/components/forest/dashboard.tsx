@@ -104,9 +104,7 @@ export function Dashboard({ view }: { view: View }) {
             </div>
             <ImpactStats
               floating
-              co2={summary.savedCO2}
-              water={summary.savedWater}
-              food={summary.savedFood}
+              impact={summary.impact}
             />
           </>
         )}
@@ -117,9 +115,7 @@ export function Dashboard({ view }: { view: View }) {
           <div className="plant-details">
             {!demo && <GrowthProgress growth={me.growth} />}
             <ImpactStats
-              co2={me.savedCO2}
-              water={me.savedWater}
-              food={me.savedFood}
+              impact={me.impact}
             />
             <MealHistory history={history} />
           </div>

@@ -67,10 +67,12 @@ if (existsSync(target)) {
 process.env.DATABASE_PATH = target;
 const { withDB, baseline } = await import("../src/server/db.ts");
 const { createShowcase } = await import("../src/lib/forest/showcase.ts");
-const { growPlant } = await import("../src/lib/forest/model.ts");
-const start = process.env.SHOWCASE_START_DATE || "2026-09-01";
-const end = process.env.SHOWCASE_END_DATE || "2026-09-30";
-const students = createShowcase(baseline, start, end);
+const { dailyMeals, growPlant } = await import("../src/lib/forest/model.ts");
+const { REPORT_PERIOD, reportTotals } = await import(
+  "../src/lib/forest/report-dataset.ts"
+);
+const { start, end } = REPORT_PERIOD;
+const students = createShowcase(baseline);
 const schoolName = process.env.SCHOOL_NAME || "Yeşil Vadi Deney Okulu";
 await withDB(async (db) => {
   await db.exec("BEGIN IMMEDIATE");
@@ -159,7 +161,7 @@ await withDB(async (db) => {
     integrity.integrity_check !== "ok" ||
     foreignKeys.length ||
     counts.schools !== 1 ||
-    counts.students !== 10 ||
+    counts.students !== students.length ||
     counts.meals !==
       students.reduce((sum, student) => sum + student.records.length, 0) ||
     counts.events !== counts.meals ||
@@ -168,14 +170,15 @@ await withDB(async (db) => {
     throw new Error("Showcase validation failed.");
   await db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
   console.log(
-    `Verified: ${counts.schools} school, ${counts.students} students, ${counts.meals} meals, ${students[0].records.length} school days. SQLite integrity and cumulative totals are correct.`,
+    `Verified: ${counts.schools} school, ${counts.students} students, ${counts.meals} category scans, 20 school days. SQLite integrity and cumulative totals are correct.`,
   );
 });
 const asOf = new Date(`${end}T23:59:59Z`).getTime() + 86400000;
 const rows = students
-  .map((student) => {
-    const { plant } = growPlant(student, student.records, asOf);
-    return `| ${student.cardID} | ${student.displayName} | ${student.story} | ${plant.stage} | ${Math.round(plant.health)}% | ${plant.height.toFixed(2)} m |`;
+  .map((student, index) => {
+    const { plant } = growPlant(student, dailyMeals(student.records), asOf);
+    const totals = reportTotals[index];
+    return `| ${student.cardID} | ${student.displayName} | ${totals.wasteGrams} g | ${totals.co2Kilograms} kg CO₂e | ${totals.waterLiters} L | ${student.story} | ${plant.stage} |`;
   })
   .join("\n");
 const reportPath = resolve(
@@ -184,8 +187,8 @@ const reportPath = resolve(
 await mkdir(dirname(reportPath), { recursive: true });
 await writeFile(
   reportPath,
-  `# Experimental school showcase\n\nAll names, card numbers, meal records, and environmental outcomes below are fictional experimental data.\n\n- Database: \`${basename(target)}\` (ignored by Git).\n- School: **${schoolName}**; school ID: \`default\`.\n- Period: **${start} through ${end}**, weekdays only.\n- Usage: **${students[0].records.length} lunches per student**, **${students.reduce((sum, s) => sum + s.records.length, 0)} total scans**.\n- Baselines: ${baseline.weight} g food, ${baseline.co2} g CO₂, ${baseline.water} L embodied water; waste target ${baseline.targetRatio * 100}%.\n\nSign in through “Kartımla giriş” with any card below. Start with **TEST001** for a healthy tree, **TEST003** for recovery, or **TEST004** for a recent setback. The signed-out preview is a separate synthetic demo; sign in to see this database's 10 students.\n\n| Test card | Placeholder student | Scenario | Stage after the month | Vitality | Virtual height |\n| --- | --- | --- | --- | --- | --- |\n${rows}\n\nRun \`npm run seed:showcase\` to create the fixture. Rerunning preserves the existing database. To explicitly reset this showcase, use \`npm run seed:showcase -- --reset\`; reset revokes showcase sessions. The script refuses to overwrite an unmarked database or reset a database containing students/schools outside the fixture. It uses the production schema, impact factors, and growth rules.\n\nThe private device API key lives in \`.env.local\`; it is not needed for card sign-in. Restart an already-running application after changing environment settings. Use Node 24 for the seeding command.\n`,
+  `# Report-backed school showcase\n\nThe fixture mirrors the four student profiles in the November 2025 project report.\n\n- Database: \`${basename(target)}\` (ignored by Git).\n- School: **${schoolName}**; school ID: \`default\`.\n- Period: **${start} through ${end}**, weekdays only.\n- Usage: **20 lunches per student**, **${students.reduce((sum, s) => sum + s.records.length, 0)} category scans**.\n- Baselines: ${baseline.weight} g food, ${baseline.co2} g CO₂, ${baseline.water} L embodied water; waste target ${baseline.targetRatio * 100}%.\n\nSign in through “Kartımla giriş” with **TEST001** through **TEST004**. The signed-out preview uses the same report data.\n\n| Test card | Student | Waste | Carbon | Water | Profile | Tree stage |\n| --- | --- | ---: | ---: | ---: | --- | --- |\n${rows}\n\nRun \`npm run seed:showcase\` to create the fixture. Rerunning preserves the existing database. To explicitly reset this showcase, use \`npm run seed:showcase -- --reset\`; reset revokes showcase sessions. The script refuses to overwrite an unmarked database or reset a database containing students/schools outside the fixture. It uses the production schema, report coefficients, and growth rules.\n\nThe private device API key lives in \`.env.local\`; it is not needed for card sign-in. Restart an already-running application after changing environment settings. Use Node 24 for the seeding command.\n`,
 );
 console.log(
-  `Created ${basename(target)}. Student login: TEST001 through TEST010. Details: docs/showcase-data.md.`,
+  `Created ${basename(target)}. Student login: TEST001 through TEST004. Details: docs/showcase-data.md.`,
 );

@@ -24,15 +24,9 @@ export function Leaderboard() {
               displayName: p.name,
               mealCount: p.meals,
               totalMealWeight: p.meals * data.baseline.weight,
-              totalWaste: Math.max(0, p.meals * data.baseline.weight - p.savedFood * 1000),
-              totalCO2: Math.max(
-                0,
-                p.meals * data.baseline.co2 - p.savedCO2 * 1000,
-              ),
-              totalWater: Math.max(
-                0,
-                p.meals * data.baseline.water - p.savedWater,
-              ),
+              totalWaste: p.impact.wasteGrams,
+              totalCO2: p.impact.co2Kilograms * 1000,
+              totalWater: p.impact.waterLiters,
             })),
           )
         : [],
@@ -78,6 +72,7 @@ export function Leaderboard() {
           .includes(search.toLocaleLowerCase("tr")),
     );
   const selected = data?.plants.find((p) => p.uid === selectedId);
+  const selectedStudent = ranked.find((student) => student.uid === selectedId);
   return (
     <main className="forest-container leaderboard-page">
       <div className="leaderboard-heading">
@@ -153,7 +148,19 @@ export function Leaderboard() {
           </div>
         </>
       )}
-      <TreeVisit plant={selected} onClose={() => setSelectedId(null)} />
+      <TreeVisit
+        plant={selected}
+        impact={
+          selectedStudent
+            ? {
+                wasteGrams: selectedStudent.totalWaste,
+                co2Kilograms: selectedStudent.co2Emissions,
+                waterLiters: selectedStudent.waterFootprint,
+              }
+            : undefined
+        }
+        onClose={() => setSelectedId(null)}
+      />
     </main>
   );
 }

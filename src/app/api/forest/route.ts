@@ -2,7 +2,12 @@ import { studentDisplayName } from "@/lib/forest/student-label";
 import { NextRequest, NextResponse } from "next/server";
 import { withDB, baseline } from "@/server/db";
 import { currentUser } from "@/server/auth";
-import { growPlant, summarize, type MealEvent } from "@/lib/forest/model";
+import {
+  dailyMeals,
+  growPlant,
+  summarize,
+  type MealEvent,
+} from "@/lib/forest/model";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
@@ -40,7 +45,7 @@ export async function GET(req: NextRequest) {
         byUser.set(record.uid, list);
       }
       const results = users.map((user) =>
-        growPlant(user, byUser.get(user.uid) || []),
+        growPlant(user, dailyMeals(byUser.get(user.uid) || [])),
       );
       const own = results.find((r) => r.plant.uid === me.uid);
       const plants = results.map((r) => r.plant);

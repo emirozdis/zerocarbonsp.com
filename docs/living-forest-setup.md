@@ -63,7 +63,7 @@ Tree size uses the same overall food-waste ratio as the leaderboard: total waste
 
 The school combines the same student states; no extra collective penalty is applied to individual plants. Current implementation uses average vitality of students with records for school health. School goals use accumulated growth; their milestone cards unlock automatically. Scene butterflies vary with vitality. More elaborate habitat rewards and rolling school trends are follow-up features.
 
-Savings are estimated differences from the whole fixed meal baseline. Signed differences are retained; progress pages show negative differences for excess impact, while celebratory home cards floor savings at zero. Embodied water is clearly labeled and is not direct tap-water consumption.
+Garden and forest statistics display recorded food-waste weight and estimated carbon and embodied-water footprints from the recorded category impacts. School totals sum these footprints across students. Fixed meal baselines are scoring assumptions, not measured savings or proof of food preservation. Signed baseline differences remain in the model for compatibility but are not displayed as footprints or savings. Embodied water represents food production, not direct tap-water consumption.
 
 ## Access and compatibility
 

@@ -23,7 +23,7 @@ const seed = (dir, reset = false) =>
       },
     },
   );
-test("showcase contains one school, ten distinct students, a month of varied meals, and safe repeat/reset behavior", async () => {
+test("showcase matches the report's four student profiles and safe repeat/reset behavior", async () => {
   const dir = await mkdtemp(join(tmpdir(), "showcase-fixture-"));
   try {
     const result = seed(dir);
@@ -38,43 +38,49 @@ test("showcase contains one school, ten distinct students, a month of varied mea
         1,
       );
       const users = await db.all("SELECT * FROM users ORDER BY plotIndex");
-      assert.equal(users.length, 10);
+      assert.equal(users.length, 4);
       assert.equal(users[0].cardID, "TEST001");
-      assert.equal(users[9].cardID, "TEST010");
+      assert.equal(users[3].cardID, "TEST004");
       const rows = await db.all("SELECT * FROM records ORDER BY id");
-      assert.equal(rows.length, 220);
-      assert.equal(new Set(rows.map((r) => r.eventId)).size, 220);
-      assert.equal(new Set(rows.map((r) => r.createdAt.slice(0, 10))).size, 22);
+      assert.equal(rows.length, 240);
+      assert.equal(new Set(rows.map((r) => r.eventId)).size, 240);
+      assert.equal(new Set(rows.map((r) => r.createdAt.slice(0, 10))).size, 20);
       assert.ok(
         rows.every(
           (r) =>
-            r.createdAt.startsWith("2026-09-") &&
+            r.createdAt.startsWith("2025-11-") &&
             ![0, 6].includes(new Date(r.createdAt).getUTCDay()),
         ),
       );
-      assert.ok(rows.some((r) => r.weight === 0));
       assert.deepEqual(
         new Set(rows.map((r) => r.wasteType)),
         new Set([0, 1, 2]),
       );
-      const { growPlant } = await import("../src/lib/forest/model.ts");
+      const { dailyMeals, growPlant } = await import("../src/lib/forest/model.ts");
+      const { reportTotals } = await import("../src/lib/forest/report-dataset.ts");
       const projections = users.map(
         (user) =>
           growPlant(
             user,
-            rows.filter((r) => r.cardID === user.cardID),
+            dailyMeals(rows.filter((r) => r.cardID === user.cardID)),
           ).plant,
       );
-      assert.ok(projections[0].health > 95);
-      assert.ok(projections[3].health < 50);
-      assert.ok(projections[2].health > projections[3].health);
-      assert.ok(projections[7].height < projections[0].height);
+      for (const [index, user] of users.entries()) {
+        const totals = await db.get(
+          "SELECT SUM(weight) AS waste, SUM(co2Emission) AS co2, SUM(waterFootprint) AS water FROM records WHERE cardID = ?",
+          user.cardID,
+        );
+        assert.ok(Math.abs(totals.waste - reportTotals[index].wasteGrams) < 1e-8);
+        assert.ok(Math.abs(totals.co2 / 1000 - reportTotals[index].co2Kilograms) < 1e-8);
+        assert.ok(Math.abs(totals.water - reportTotals[index].waterLiters) < 1e-8);
+        assert.equal(projections[index].meals, 20);
+      }
       const firstId = rows[0].id;
       const preserved = seed(dir);
       assert.equal(preserved.status, 0, preserved.stderr);
       assert.equal(
         (await db.get("SELECT COUNT(*) AS count FROM records")).count,
-        220,
+        240,
       );
       assert.equal(
         (await db.get("SELECT id FROM records ORDER BY id LIMIT 1")).id,
@@ -84,7 +90,7 @@ test("showcase contains one school, ten distinct students, a month of varied mea
       assert.equal(reset.status, 0, reset.stderr);
       assert.equal(
         (await db.get("SELECT COUNT(*) AS count FROM records")).count,
-        220,
+        240,
       );
       await db.run(
         "INSERT INTO users(uid,cardID,displayName) VALUES ('external-user','external-card','External')",
@@ -93,9 +99,9 @@ test("showcase contains one school, ten distinct students, a month of varied mea
       assert.notEqual(blocked.status, 0);
       assert.equal(
         (await db.get("SELECT COUNT(*) AS count FROM users")).count,
-        11,
+        5,
       );
-      assert.match(await readFile(join(dir, "report.md"), "utf8"), /TEST010/);
+      assert.match(await readFile(join(dir, "report.md"), "utf8"), /TEST004/);
     } finally {
       await db.close();
     }

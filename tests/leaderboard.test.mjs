@@ -12,6 +12,7 @@ test("lower waste ratio beats lower lifetime totals despite more recorded meals"
   ]);
   assert.deepEqual(results.map((s) => s.uid), ["many", "few"]);
   assert.equal(results[0].wasteRatio, 0.05);
+  assert.equal(results[0].totalWaste, 225);
   assert.equal(results[0].co2Emissions, 0.675);
 });
 test("equal ratios use a stable tie-break without rewarding attendance or totals", () => {

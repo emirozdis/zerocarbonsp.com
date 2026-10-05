@@ -23,6 +23,7 @@ export function rankStudents(users: LeaderboardUser[]): Student[] {
       co2Emissions: user.totalCO2 / 1000,
       totalWater: user.totalWater,
       waterFootprint: user.totalWater,
+      totalWaste: user.totalWaste,
       avatar: user.displayName
         .split(" ")
         .map((part) => part[0])

@@ -189,11 +189,16 @@ export async function GET(req: NextRequest) {
         );
       }
       const users = await db.all(
-        `SELECT u.uid, u.displayName, u.totalCO2, u.totalWater,
-          COUNT(r.id) AS mealCount,
-          COALESCE(SUM(r.weight), 0) AS totalWaste,
-          COALESCE(SUM(r.baselineWeight), 0) AS totalMealWeight
-         FROM users u LEFT JOIN records r ON r.cardID = u.cardID
+        `WITH daily AS (
+          SELECT cardID, substr(createdAt, 1, 10) AS mealDate,
+            SUM(weight) AS totalWaste, MAX(baselineWeight) AS baselineWeight
+          FROM records GROUP BY cardID, substr(createdAt, 1, 10)
+        )
+         SELECT u.uid, u.displayName, u.totalCO2, u.totalWater,
+          COUNT(d.mealDate) AS mealCount,
+          COALESCE(SUM(d.totalWaste), 0) AS totalWaste,
+          COALESCE(SUM(d.baselineWeight), 0) AS totalMealWeight
+         FROM users u LEFT JOIN daily d ON d.cardID = u.cardID
          ${device ? "" : "WHERE u.schoolId = ?"}
          GROUP BY u.uid ORDER BY u.uid`,
         ...(device ? [] : [me!.schoolId]),

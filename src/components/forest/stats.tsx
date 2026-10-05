@@ -9,6 +9,7 @@ import {
   Leaf,
 } from "lucide-react";
 import type { Plant } from "@/lib/forest/model";
+import { impactMetrics, type EnvironmentalImpact } from "@/lib/forest/impact";
 
 export const formatNumber = (value: number, digits = 1) =>
   new Intl.NumberFormat("tr-TR", { maximumFractionDigits: digits }).format(
@@ -20,17 +21,20 @@ export function Metric({
   label,
   value,
   unit,
+  description,
 }: {
   icon: ReactNode;
   label: string;
   value: number;
   unit: string;
+  description?: string;
 }) {
   return (
-    <div className="impact-stat">
+    <div className="impact-stat" title={description}>
       <span className="impact-stat-icon">{icon}</span>
       <div>
         <span>{label}</span>
+        {description && <span className="sr-only">{description}</span>}
         <strong>
           {formatNumber(value)} <small>{unit}</small>
         </strong>
@@ -40,36 +44,24 @@ export function Metric({
 }
 
 export function ImpactStats({
-  co2,
-  water,
-  food,
+  impact,
   floating = false,
 }: {
-  co2: number;
-  water: number;
-  food: number;
+  impact: EnvironmentalImpact;
   floating?: boolean;
 }) {
   return (
     <div className={`impact-stats ${floating ? "impact-stats-floating" : ""}`}>
-      <Metric
-        icon={<Wind size={19} />}
-        label="Karbon tasarrufu"
-        value={co2}
-        unit="kg CO₂"
-      />
-      <Metric
-        icon={<Droplets size={19} />}
-        label="Su ayak izi"
-        value={water}
-        unit="L"
-      />
-      <Metric
-        icon={<Leaf size={19} />}
-        label="Korunan gıda"
-        value={food}
-        unit="kg"
-      />
+      {impactMetrics(impact).map((metric) => (
+        <Metric
+          key={metric.key}
+          icon={metric.key === "carbon" ? <Wind size={19} /> : metric.key === "water" ? <Droplets size={19} /> : <Leaf size={19} />}
+          label={metric.label}
+          value={metric.value}
+          unit={metric.unit}
+          description={metric.description}
+        />
+      ))}
     </div>
   );
 }

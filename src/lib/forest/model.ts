@@ -1,5 +1,6 @@
 import { wasteRatio, growthForWasteRatio } from "../waste-ratio.ts";
 import { plantDimensions } from "./growth-profile.ts";
+import type { EnvironmentalImpact } from "./impact.ts";
 /** Pure, versioned simulation. A record is one completed post-meal card scan. */
 export const RULES_VERSION = 2;
 export interface MealBaseline {
@@ -19,6 +20,27 @@ export interface MealEvent {
   baselineWater: number;
   targetRatio: number;
 }
+/** Combine category scans from the same day into one school lunch. */
+export function dailyMeals(records: MealEvent[]): MealEvent[] {
+  const byDate = new Map<string, MealEvent[]>();
+  for (const record of records) {
+    const date = record.createdAt.slice(0, 10);
+    const parts = byDate.get(date);
+    if (parts) parts.push(record);
+    else byDate.set(date, [record]);
+  }
+  return [...byDate.values()].map((parts) => ({
+    id: Math.min(...parts.map((part) => part.id)),
+    weight: parts.reduce((sum, part) => sum + part.weight, 0),
+    co2Emission: parts.reduce((sum, part) => sum + part.co2Emission, 0),
+    waterFootprint: parts.reduce((sum, part) => sum + part.waterFootprint, 0),
+    createdAt: parts[0].createdAt,
+    baselineWeight: Math.max(...parts.map((part) => part.baselineWeight)),
+    baselineCO2: Math.max(...parts.map((part) => part.baselineCO2)),
+    baselineWater: Math.max(...parts.map((part) => part.baselineWater)),
+    targetRatio: parts[0].targetRatio,
+  }));
+}
 export interface Plant {
   uid: string;
   name: string;
@@ -37,6 +59,7 @@ export interface Plant {
   savedWater: number;
   savedFood: number;
   recentScore: number;
+  impact: EnvironmentalImpact;
 }
 export interface MealOutcome {
   id: number;
@@ -59,6 +82,7 @@ export interface ForestData {
     savedCO2: number;
     savedWater: number;
     savedFood: number;
+    impact: EnvironmentalImpact;
   };
   baseline: MealBaseline;
   demo: boolean;
@@ -165,6 +189,15 @@ export function growPlant(
       ? history.slice(-7).reduce((s, r) => s + r.score, 0) /
         Math.min(7, history.length)
       : 0,
+    impact: {
+      wasteGrams: ordered.reduce((sum, record) => sum + record.weight, 0),
+      co2Kilograms:
+        ordered.reduce((sum, record) => sum + record.co2Emission, 0) / 1000,
+      waterLiters: ordered.reduce(
+        (sum, record) => sum + record.waterFootprint,
+        0,
+      ),
+    },
   };
   return { plant, history: history.reverse() };
 }
@@ -179,5 +212,10 @@ export function summarize(plants: Plant[]) {
     savedCO2: plants.reduce((s, p) => s + p.savedCO2, 0),
     savedWater: plants.reduce((s, p) => s + p.savedWater, 0),
     savedFood: plants.reduce((s, p) => s + p.savedFood, 0),
+    impact: {
+      wasteGrams: plants.reduce((s, p) => s + p.impact.wasteGrams, 0),
+      co2Kilograms: plants.reduce((s, p) => s + p.impact.co2Kilograms, 0),
+      waterLiters: plants.reduce((s, p) => s + p.impact.waterLiters, 0),
+    },
   };
 }
